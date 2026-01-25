@@ -24,7 +24,7 @@ export function SyntaxHighlighter({ content, language = 'markdown' }: SyntaxHigh
             }}
             codeTagProps={{
                 style: {
-                    fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
+                    fontFamily: "'Fira Code', 'JetBrains Mono', 'Consolas', monospace",
                     textShadow: theme === 'dark' ? '0 0 1px rgba(255,255,255,0.1)' : 'none',
                 },
             }}

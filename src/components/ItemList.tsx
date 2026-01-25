@@ -16,7 +16,7 @@ export function ItemList() {
 
     if (items.length === 0) {
         return (
-            <div className="flex-1 flex flex-col items-center justify-center text-text-muted">
+            <div className="flex-1 flex flex-col items-center justify-center text-text-muted h-full w-full">
                 <FileText className="w-16 h-16 mb-4 opacity-30" />
                 <p className="text-lg font-medium">No items found</p>
                 <p className="text-sm">Create a new skill, rule, or workflow to get started</p>

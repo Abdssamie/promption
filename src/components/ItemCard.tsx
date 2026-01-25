@@ -37,9 +37,7 @@ export function ItemCard({ item }: ItemCardProps) {
 
     const handleDelete = async (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (confirm(`Delete "${item.name}"?`)) {
-            await deleteItem(item.id);
-        }
+        await deleteItem(item.id);
     };
 
     return (
@@ -50,23 +48,24 @@ export function ItemCard({ item }: ItemCardProps) {
             )}
             onClick={() => setEditing(item)}
         >
-            {/* Selection checkbox */}
+            {/* Selection checkbox - bottom right */}
             <div
-                className="absolute top-4 left-4 z-10"
+                className="absolute bottom-4 right-4 z-10"
                 onClick={(e) => e.stopPropagation()}
             >
                 <Checkbox
                     checked={isSelected}
                     onCheckedChange={() => toggleSelect(item.id)}
                     className={cn(
-                        "data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground",
-                        !isSelected && "opacity-0 group-hover:opacity-100 transition-opacity"
+                        "data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground w-5 h-5",
+                        "transition-all duration-200",
+                        !isSelected && "opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100"
                     )}
                 />
             </div>
 
             {/* Header */}
-            <CardHeader className="pl-12 p-4 pb-2 space-y-1 relative z-0">
+            <CardHeader className="p-4 pb-2 space-y-1 relative z-0">
                 <div className="flex items-start justify-between min-w-0">
                     <div className="flex-1 min-w-0 space-y-1 pr-2">
                         <div className="flex items-center gap-2">
@@ -111,7 +110,7 @@ export function ItemCard({ item }: ItemCardProps) {
                 </div>
             </CardHeader>
 
-            <CardContent className="pl-12 p-4 pt-0">
+            <CardContent className="p-4 pt-0">
                 {/* Tags */}
                 {item.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mb-3">
@@ -124,15 +123,14 @@ export function ItemCard({ item }: ItemCardProps) {
                             return (
                                 <span
                                     key={tag.id}
-                                    className="text-xs px-2 py-1 rounded-full bg-secondary/50 text-secondary-foreground flex items-center gap-1.5"
-                                    style={{
-                                        backgroundColor: `${tag.color}15`,
-                                        color: tag.color,
-                                        border: `1px solid ${tag.color}30`
-                                    }}
+                                    className="text-xs px-2 py-1 rounded-full bg-secondary/50 text-foreground flex items-center gap-1.5 border border-border/50"
                                 >
-                                    {tech && <TechIcon slug={tech.iconSlug} size={16} color={tech.color} />}
-                                    #{tag.name}
+                                    {tech ? (
+                                        <TechIcon slug={tech.iconSlug} size={16} color={tech.color} />
+                                    ) : (
+                                        <span className="text-muted-foreground">#</span>
+                                    )}
+                                    {tag.name}
                                 </span>
                             );
                         })}

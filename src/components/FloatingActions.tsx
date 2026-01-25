@@ -193,13 +193,8 @@ function TagManagerContent() {
                                         'flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-all',
                                         exists 
                                             ? 'opacity-50 cursor-not-allowed bg-secondary/50'
-                                            : 'hover:scale-105 hover:shadow-sm cursor-pointer'
+                                            : 'hover:scale-105 hover:shadow-sm cursor-pointer bg-secondary/50 border border-border/50'
                                     )}
-                                    style={{
-                                        backgroundColor: exists ? undefined : `${tech.color}15`,
-                                        color: tech.color,
-                                        border: `1px solid ${tech.color}30`
-                                    }}
                                     title={exists ? 'Already added' : `Add ${tech.name} tag`}
                                 >
                                     <TechIcon slug={tech.iconSlug} size={16} color={tech.color} />
