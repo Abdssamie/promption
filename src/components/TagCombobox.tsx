@@ -8,6 +8,7 @@ import {
     ComboboxInput,
     ComboboxItem,
     ComboboxList,
+    ComboboxCollection,
 } from '@/components/ui/combobox';
 import type { Tag } from '../types';
 import { cn } from '../lib/utils';
@@ -29,17 +30,17 @@ export function TagCombobox({ tags, selectedTagIds, onTagsChange }: TagComboboxP
         return tags.filter(tag => tag.name.toLowerCase().includes(query));
     }, [tags, searchQuery]);
 
-    const systemTags = useMemo(() => 
+    const systemTags = useMemo(() =>
         filteredTags.filter(tag => tag.is_system),
         [filteredTags]
     );
-    
-    const customTags = useMemo(() => 
+
+    const customTags = useMemo(() =>
         filteredTags.filter(tag => !tag.is_system),
         [filteredTags]
     );
 
-    const selectedTags = useMemo(() => 
+    const selectedTags = useMemo(() =>
         tags.filter(tag => selectedTagIds.includes(tag.id)),
         [tags, selectedTagIds]
     );
@@ -64,11 +65,20 @@ export function TagCombobox({ tags, selectedTagIds, onTagsChange }: TagComboboxP
         );
     };
 
+    const handleValueChange = (newValues: string[]) => {
+        onTagsChange(newValues);
+        setSearchQuery('');
+    };
+
     return (
         <div className="space-y-2">
-            <Combobox>
+            <Combobox
+                value={selectedTagIds}
+                onValueChange={(val) => handleValueChange(val as string[])}
+                multiple
+            >
                 <ComboboxInput
-                    placeholder={selectedTags.length > 0 
+                    placeholder={selectedTags.length > 0
                         ? `${selectedTags.length} tag${selectedTags.length > 1 ? 's' : ''} selected`
                         : 'Search tags...'}
                     value={searchQuery}
@@ -78,7 +88,7 @@ export function TagCombobox({ tags, selectedTagIds, onTagsChange }: TagComboboxP
                 <ComboboxContent>
                     <ComboboxList>
                         <ComboboxEmpty>No tags found.</ComboboxEmpty>
-                        
+
                         {systemTags.length > 0 && (
                             <>
                                 <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
@@ -87,20 +97,19 @@ export function TagCombobox({ tags, selectedTagIds, onTagsChange }: TagComboboxP
                                 {systemTags.map((tag) => {
                                     const isSelected = selectedTagIds.includes(tag.id);
                                     const tech = getTechIcon(tag.name);
-                                    
+
                                     return (
                                         <ComboboxItem
                                             key={tag.id}
                                             value={tag.id}
-                                            onSelect={() => handleToggleTag(tag.id)}
                                             className="cursor-pointer justify-between"
                                         >
                                             <div className="flex items-center gap-2">
                                                 {tech && (
-                                                    <TechIcon 
-                                                        slug={tech.iconSlug} 
-                                                        size={16} 
-                                                        color={tech.color} 
+                                                    <TechIcon
+                                                        slug={tech.iconSlug}
+                                                        size={16}
+                                                        color={tech.color}
                                                     />
                                                 )}
                                                 <span>{tag.name}</span>
@@ -124,17 +133,16 @@ export function TagCombobox({ tags, selectedTagIds, onTagsChange }: TagComboboxP
                                 </div>
                                 {customTags.map((tag) => {
                                     const isSelected = selectedTagIds.includes(tag.id);
-                                    
+
                                     return (
                                         <ComboboxItem
                                             key={tag.id}
                                             value={tag.id}
-                                            onSelect={() => handleToggleTag(tag.id)}
                                             className="cursor-pointer justify-between"
                                         >
                                             <div className="flex items-center gap-2">
-                                             <span 
-                                                    className="w-3 h-3 rounded-full shrink-0" 
+                                                <span
+                                                    className="w-3 h-3 rounded-full shrink-0"
                                                     style={{ backgroundColor: tag.color }}
                                                 />
                                                 <span>{tag.name}</span>
@@ -143,7 +151,7 @@ export function TagCombobox({ tags, selectedTagIds, onTagsChange }: TagComboboxP
                                                 <Check className="h-4 w-4 text-primary" />
                                             )}
                                         </ComboboxItem>
-                          );
+                                    );
                                 })}
                             </>
                         )}
@@ -155,7 +163,7 @@ export function TagCombobox({ tags, selectedTagIds, onTagsChange }: TagComboboxP
                 <div className="flex flex-wrap gap-1.5 p-2 border rounded-lg bg-secondary/20 max-h-32 overflow-y-auto">
                     {selectedTags.map((tag) => {
                         const tech = getTechIcon(tag.name);
-                        
+
                         return (
                             <Badge
                                 key={tag.id}
@@ -171,10 +179,10 @@ export function TagCombobox({ tags, selectedTagIds, onTagsChange }: TagComboboxP
                                 }}
                             >
                                 {tech && (
-                                    <TechIcon 
-                                        slug={tech.iconSlug} 
-                                        size={14} 
-                                        color={tech.color} 
+                                    <TechIcon
+                                        slug={tech.iconSlug}
+                                        size={14}
+                                        color={tech.color}
                                     />
                                 )}
                                 <span className="text-xs">{tag.name}</span>
@@ -182,7 +190,7 @@ export function TagCombobox({ tags, selectedTagIds, onTagsChange }: TagComboboxP
                                     onClick={() => handleRemoveTag(tag.id)}
                                     className="ml-1 rounded-full hover:bg-black/10 dark:hover:bg-white/10 p-0.5"
                                 >
-                           <X className="h-3 w-3" />
+                                    <X className="h-3 w-3" />
                                 </button>
                             </Badge>
                         );
