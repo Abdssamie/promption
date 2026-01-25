@@ -16,6 +16,7 @@ import {
 import { POPULAR_TECHNOLOGIES } from '../constants/technologies';
 import { TechIcon } from './TechIcon';
 import { ThemeToggle } from './ThemeToggle';
+import { ZoomControls } from './ZoomControls';
 
 export function Header() {
     const [isExporting, setIsExporting] = useState(false);
@@ -106,6 +107,9 @@ export function Header() {
 
                 {/* Theme Toggle */}
                 <ThemeToggle />
+
+                {/* Zoom Controls */}
+                <ZoomControls />
 
                 {/* Tag Manager */}
                 <Dialog>
