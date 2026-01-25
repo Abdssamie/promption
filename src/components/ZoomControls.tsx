@@ -11,7 +11,7 @@ export function ZoomControls() {
     const initZoom = async () => {
       try {
         const webview = getCurrentWebview();
-        await webview.setZoom(1.75);
+        await webview.setZoom(1.25);
         console.log("Initial zoom set to 125%");
       } catch (error) {
         console.error("Failed to set initial zoom:", error);

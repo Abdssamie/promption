@@ -156,11 +156,11 @@ export function ItemEditor({ item, createType, onClose }: ItemEditorProps) {
 
     return (
         <Dialog open={true} onOpenChange={onClose}>
-            <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 gap-0">
+            <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
                 {/* Header */}
-                <DialogHeader className="p-6 pb-4 border-b">
+                <DialogHeader className="p-4 pb-3 border-b shrink-0">
                     <div className="flex items-center gap-3">
-                        <DialogTitle className="text-lg">
+                        <DialogTitle className="text-base">
                             {isCreating ? 'Create New' : 'Edit'} Item
                         </DialogTitle>
                         {!isCreating && (
@@ -178,7 +178,7 @@ export function ItemEditor({ item, createType, onClose }: ItemEditorProps) {
                 </DialogHeader>
 
                 {/* Form */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
                     {/* Name and Type */}
                     <div className="flex gap-4">
                         <div className="flex-1 space-y-2">
@@ -280,16 +280,16 @@ export function ItemEditor({ item, createType, onClose }: ItemEditorProps) {
                             </div>
                         </div>
 
-                        <div className="relative min-h-[300px] rounded-lg border overflow-hidden">
+                        <div className="relative min-h-[250px] max-h-[400px] rounded-lg border overflow-hidden">
                             {mode === 'edit' ? (
                                 <Textarea
                                     value={content}
                                     onChange={(e) => setContent(e.target.value)}
                                     placeholder={PLACEHOLDERS[itemType]}
-                                    className="min-h-[300px] resize-none font-mono text-sm leading-relaxed border-0 focus-visible:ring-0"
+                                    className="h-full min-h-[250px] max-h-[400px] resize-none font-mono text-sm leading-relaxed border-0 focus-visible:ring-0"
                                 />
                             ) : (
-                                <div className="p-4 overflow-auto max-h-[400px]">
+                                <div className="p-4 overflow-auto h-full max-h-[400px]">
                                     {content ? (
                                         <SyntaxHighlighter content={content} language="markdown" />
                                     ) : (
@@ -302,7 +302,7 @@ export function ItemEditor({ item, createType, onClose }: ItemEditorProps) {
                 </div>
 
                 {/* Footer */}
-                <DialogFooter className="p-6 pt-4 border-t">
+                <DialogFooter className="p-4 pt-3 border-t shrink-0">
                     <Button
                         variant="ghost"
                         onClick={onClose}

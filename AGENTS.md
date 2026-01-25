@@ -10,18 +10,19 @@ Promption is a **Tauri + React + TypeScript** desktop application for managing A
 - **State**: Zustand with reactive computed state
 - **Testing**: Vitest, React Testing Library, happy-dom
 - **Package Manager**: Bun
+- **Font**: Fira Code (monospace for entire app)
 
 ## Build, Run & Test Commands
 
 ### Development
 ```bash
 # ⚠️ CRITICAL: Always run the full Tauri app (NOT just Vite)
-bun run tauri dev          # Correct - Runs Tauri + Rust backend + Vite dev server
+bun tauri dev              # Correct - Runs Tauri + Rust backend + Vite dev server
 bun run dev                # Wrong - Only Vite (no Tauri API, database won't work)
 
 # Build for production
 bun run build              # TypeScript check + Vite build (frontend only)
-bun run tauri build        # Full Tauri app build (creates executable)
+bun tauri build            # Full Tauri app build (creates executable)
 
 # Type checking only
 tsc --noEmit               # Run TypeScript compiler without emitting files
@@ -30,19 +31,19 @@ tsc --noEmit               # Run TypeScript compiler without emitting files
 ### Testing
 ```bash
 # Run all tests
-bun run test
+bun test
 
 # Run tests in watch mode (auto-rerun on file changes)
-bun run test:watch
+bun test:watch
 
 # Run a single test file
-bun run test src/components/SearchBar.test.tsx
+bun test src/components/SearchBar.test.tsx
 
 # Run tests matching a pattern (e.g., all SearchBar tests)
-bun run test SearchBar
+bun test SearchBar
 
 # Run with coverage report
-bun run test:coverage
+bun test:coverage
 ```
 
 ## Code Style Guidelines
@@ -53,18 +54,20 @@ bun run test:coverage
 3. Internal utilities and types (use `type` imports for types)
 4. shadcn/ui components (from `@/components/ui/*`)
 5. Local components
-6. Styles (if any)
+6. Constants and assets
 
 ```typescript
 // ✅ Good
 import { useState } from 'react';
 import { Save, Eye, Edit3 } from 'lucide-react';
+import { getCurrentWebview } from '@tauri-apps/api/webview';
 import { useAppStore } from '../store/appStore';
 import { cn, getItemTypeColor } from '../lib/utils';
 import type { Item, ItemType } from '../types';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { SyntaxHighlighter } from './SyntaxHighlighter';
+import { POPULAR_TECHNOLOGIES } from '../constants/technologies';
 ```
 
 ### Component Structure
@@ -89,15 +92,19 @@ export function MyComponent({ item, onClose }: MyComponentProps) {
     // 2. React hooks (useState, useEffect, etc.)
     const [isLoading, setIsLoading] = useState(false);
     
-    // 3. Event handlers
-    const handleSave = async () => { /* ... */ };
+    // 3. Derived state
+    const isValid = item.name.length > 0;
     
-    // 4. Render
+    // 4. Event handlers
+    const handleSave = async () => { /* n    
+    // 5. Render (early returns for loading/error states)
+    if (isLoading) return <Loader />;
+    
     return <div>...</div>;
 }
 ```
 
-### TypeScript Guiines
+### TypeScript Guidelines
 
 **Strict mode is enabled** - Always use explicit types:
 ```typescript
@@ -141,7 +148,7 @@ return item.name; // Could crash if null
 
 - **Components**: PascalCase (`SearchBar`, `ItemEditor`)
 - **Functions/Variables**: camelCase (`handleSave`, `toggleTag`, `isLoading`)
-- **Constants**: UPPER_SNAKE_CASE (`TAG_COLORS`, `PLACEHOLDERS`)
+- **Constants**: UPPER_SNAKE_CASE (`TAG_COLORS`, `POPULAR_TECHNOLOGIES`)
 - **Types/Interfaces**: PascalCase (`Item`, `ItemFormData`, `AppState`)
 - **Files**: Match component name (`SearchBar.tsx`, `ItemEditor.tsx`)
 - **Test files**: `ComponentName.test.tsx` (next to component)
@@ -174,7 +181,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 - `Badge` (variants: default, secondary, outline, destructive)
 - `Checkbox`
 
-### Styling Guidelines
+###tyling Guidelines
 
 **Use Tailwind utility classes with design tokens:**
 ```typescript
@@ -198,6 +205,12 @@ import { cn } from '@/lib/utils';
 )} />
 ```
 
+**Design System:**
+- **Primary color**: Orange (`oklch(0.646 0.222 41.116)`)
+- **Font**: Fira Code (monospace throughout app)
+- **Dark mode**: Supported via `next-themes`, use `dark:` prefix
+- **Responsive**: Mobile-first (sm, md, lg, xl breakpoints)
+
 ### State Management (Zustand)
 
 **CRITICAL**: Always use selector pattern, never select entire store:
@@ -220,9 +233,9 @@ const items = getFilteredItems(); // Use s.filteredItems instead
 
 ### Error Handling
 
-**Always use try-catch-finally for async oper:**
+**Always use try-catch-finally for async operations:**
 ```typescript
-// ✅ Good - Proper error handling with loading states
+// ✅ Good - Propendling with loading states
 const [isSaving, setIsSaving] = useState(false);
 
 const handleSave = async () => {
@@ -263,7 +276,15 @@ import { writeTextFile } from '@tauri-apps/plugin-fs';
 import { open } from '@tauri-apps/plugin-dialog';
 ```
 
-**Database location**: SQLite database is at `~/.config/cbdssamie.promption/promption.db`
+**Webview API** - For zoom control:
+```typescript
+import { getCurrentWebview } from '@tauri-apps/api/webview';
+
+const webview = getCurrentWebview();
+await webview.setZoom(1.25); zoom
+```
+
+**Database location**: SQLite database is at `~/.config/com.abdssamie.promption/promption.db`
 
 ## Testing Guidelines
 
@@ -298,9 +319,39 @@ describe('MyComponent', () => {
 - Use `userEvent` for simulating user actions
 - Use mock factories from `test-utils.tsx` for creating test data
 
+## UI/UX Patterns
+
+### Technology Icons
+- Use `TechIcon` component with `simple-icons` package
+- Icons keep brand colors, text uses standard foreground color
+- Non-tech tags show `#` symbol in muted color
+- Icon sizes: 16px for tags, 14px for filters
+
+```typescript
+import { TechIcon } from './TechIcon';
+import { POPULAR_TECHNOLOGIES } from '../constants/technologies';
+
+const tech = POPULAR_TECHNOLOGIES.find(
+    t => t.name.toLowerCase() === tag.name.toLowerCase()
+);
+
+{tech ? (
+    <TechIcon slug={tech.iconSlug} size={16} color={tech.color} />
+) : (
+    <span className="text-muted-foreground">#</span>
+)}
+```
+
+### Component Patterns
+- **Delete actions**: No confirmation dialogs, delete immediately
+- **Checkbox position**: Bottom-right of cards, visible on hoveale animation
+- **Floating actions**: Bottom-right widget for Tags/Export/Create buttons
+- **Syntax highlighting**: Theme-aware (oneDark for dark, oneLight for light)
+- **Loading states**: Always show loading indicators for async operations
+
 ## Common Pitfalls
 
-1. **Running wrong dev command** - Use `bun run tauri dev`, not `bun run dev`
+1. **Running wrong dev command** - Use `bun tauri dev`, not `bun run dev`
 2. **Not using shadcn/ui** - Always use shadcn components, never raw HTML
 3. **Modifying index.css** - Theme variables are off-limits
 4. **Missing type annotations** - Always provide explicit types
@@ -309,19 +360,24 @@ describe('MyComponent', () => {
 7. **Forgetting loading states** - Always handle async operations with loading states
 8. **Silent errors** - Always log errors with `console.error()`
 9. **Not using try-catch** - Wrap all async operations in try-catch blocks
+10. **Committing without permission** - Always ask before committing changes
 
 ## File Structure
 
 ```
 src/
-├── components/        # React components (use shadcn/ui)
-│   ├── ui/           # shadcn/ui primitives (don't modify)
-│   └── *.test.tsx    # Tests next to components
-├── services/          # i service layer (database, export)
-├── store/             # Zustand state management (appStore.ts)
-├── lib/               # Utilities (utils.ts with cn, getItemTypeColor, etc.)
-├── types/             # TypeScript type definitions
-└── tests/             # Test setup and utilities
+├── components/          # React components (use shadcn/ui)
+│   ├── ui/             # shadcn/ui primitives (don't modify)
+│   ├── Header.tsx      # App header with controls
+│   ├── ItemCard.tsx    # Item display card
+│   ├── FloatingActions.tsx  # Bottom-right action widget
+│   └── *.test.tsx      # Tests next to components
+├── services/            # API service layer (database, export)
+├── store/               # Zustand state management (appStore.ts)
+├── lib/                 # Utilities (utils.ts with cn, getItemTypeColor, etc.)
+├── types/               # TypeScript type definitions
+├── constants/           # App constants (technologies.ts)
+└── tests/               # Test setup and utilities
 ```
 
 ## Additional Resources
@@ -330,3 +386,5 @@ src/
 - Tauri v2 docs: https://v2.tauri.app
 - Zustand docs: https://zustand-demo.pmnd.rs
 - Vitest docs: https://vitest.dev
+- Tailwind CSS v4: https://tailwindcss.com
+- simple-icons: https://simpleicons.org

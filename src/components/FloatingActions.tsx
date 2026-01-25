@@ -1,5 +1,5 @@
 import { Plus, Download, Tags } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppStore } from '../store/appStore';
 import { exportItems } from '../services/export';
 import { cn } from '../lib/utils';
@@ -15,7 +15,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { TAG_COLORS } from '../lib/utils';
 import { POPULAR_TECHNOLOGIES } from '../constants/technologies';
-import { TechIcon } from './TechIcon';
 import { Trash2 } from 'lucide-react';
 
 export function FloatingActions() {
@@ -141,11 +140,27 @@ export function FloatingActions() {
 function TagManagerContent() {
     const [newTagName, setNewTagName] = useState('');
     const [newTagColor, setNewTagColor] = useState(TAG_COLORS[0]);
-    const [showTechPresets, setShowTechPresets] = useState(false);
 
     const tags = useAppStore((s) => s.tags);
     const createTag = useAppStore((s) => s.createTag);
     const deleteTag = useAppStore((s) => s.deleteTag);
+
+    // Auto-create popular technology tags on first load
+    useEffect(() => {
+        const initializeTags = async () => {
+            for (const tech of POPULAR_TECHNOLOGIES) {
+                const exists = tags.some(tag => tag.name.toLowerCase() === tech.name.toLowerCase());
+                if (!exists) {
+                    await createTag(tech.name, tech.color);
+                }
+            }
+        };
+        
+        // Only run if there are no tags yet
+        if (tags.length === 0) {
+            initializeTags();
+        }
+    }, []);
 
     const handleCreateTag = async () => {
         if (!newTagName.trim()) return;
@@ -154,61 +169,11 @@ function TagManagerContent() {
         setNewTagColor(TAG_COLORS[Math.floor(Math.random() * TAG_COLORS.length)]);
     };
 
-    const handleQuickAddTech = async (techName: string, techColor: string) => {
-        const exists = tags.some(tag => tag.name.toLowerCase() === techName.toLowerCase());
-        if (!exists) {
-            await createTag(techName, techColor);
-        }
-    };
-
     return (
         <div className="space-y-4">
-            {/* Quick add popular technologies */}
-            <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-medium flex items-center gap-2">
-                        <Tags size={14} className="text-primary" />
-                        Popular Technologies
-                    </h3>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowTechPresets(!showTechPresets)}
-                        className="h-6 text-xs"
-                    >
-                        {showTechPresets ? 'Hide' : 'Show'}
-                    </Button>
-                </div>
-                
-                {showTechPresets && (
-                    <div className="flex flex-wrap gap-1.5 p-3 bg-secondary/30 rounded-lg max-h-40 overflow-y-auto">
-                        {POPULAR_TECHNOLOGIES.map((tech) => {
-                            const exists = tags.some(tag => tag.name.toLowerCase() === tech.name.toLowerCase());
-                            return (
-                                <button
-                                    key={tech.name}
-                                    onClick={() => handleQuickAddTech(tech.name, tech.color)}
-                                    disabled={exists}
-                                    className={cn(
-                                        'flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-all',
-                                        exists 
-                                            ? 'opacity-50 cursor-not-allowed bg-secondary/50'
-                                            : 'hover:scale-105 hover:shadow-sm cursor-pointer bg-secondary/50 border border-border/50'
-                                    )}
-                                    title={exists ? 'Already added' : `Add ${tech.name} tag`}
-                                >
-                                    <TechIcon slug={tech.iconSlug} size={16} color={tech.color} />
-                                    {tech.name}
-                                </button>
-                            );
-                        })}
-                    </div>
-                )}
-            </div>
-
             {/* Create new tag */}
             <div className="space-y-3">
-                <h3 className="text-sm font-medium">Create Custom Tag</h3>
+                <h3 className="text-sm font-medium">Create New Tag</h3>
                 <div className="flex gap-2">
                     <Input
                         type="text"
