@@ -1,4 +1,4 @@
-import * as SimpleIcons from 'simple-icons';
+import { TECHNOLOGY_ICONS } from '../constants/technologies';
 
 interface TechIconProps {
     slug: string;
@@ -8,9 +8,8 @@ interface TechIconProps {
 }
 
 export function TechIcon({ slug, size = 16, color, className = '' }: TechIconProps) {
-    // Get the icon from simple-icons
-    const iconKey = `si${slug.charAt(0).toUpperCase()}${slug.slice(1)}` as keyof typeof SimpleIcons;
-    const icon = SimpleIcons[iconKey] as { svg: string; hex: string } | undefined;
+    // Get the icon from our map
+    const icon = TECHNOLOGY_ICONS[slug];
 
     if (!icon) {
         return null;

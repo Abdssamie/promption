@@ -5,10 +5,14 @@ import "./index.css";
 import { ThemeProvider } from "./components/ThemeProvider";
 import "@fontsource/fira-code";
 
+import { ErrorBoundary } from "./components/ErrorBoundary";
+
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <App />
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <App />
+      </ThemeProvider>
+    </ErrorBoundary>
   </React.StrictMode>,
 );

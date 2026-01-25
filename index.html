@@ -11,6 +11,18 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
         rel="stylesheet" />
+    <script>
+        console.log('WebView initialized. Running from index.html');
+        window.onerror = function (msg, url, line, col, error) {
+            console.error('Global Error:', msg, 'url:', url, 'line:', line, 'col:', col, 'error:', error);
+            // Alert the user in production so they can see why it crashed
+            alert('Application Error: ' + msg);
+        };
+        window.onunhandledrejection = function (event) {
+            console.error('Unhandled Rejection:', event.reason);
+            alert('Unhandled Rejection: ' + event.reason);
+        };
+    </script>
 </head>
 
 <body>
