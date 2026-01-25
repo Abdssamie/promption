@@ -1,4 +1,4 @@
-import { Plus, Download, Tags, CheckSquare, Square, Trash2 } from 'lucide-react';
+import { Plus, Download, Tags, CheckSquare, Square, Trash2, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { useAppStore } from '../store/appStore';
 import { exportItems } from '../services/export';
@@ -13,6 +13,8 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import { POPULAR_TECHNOLOGIES } from '../constants/technologies';
+import { TechIcon } from './TechIcon';
 
 export function Header() {
     const [isExporting, setIsExporting] = useState(false);
@@ -160,6 +162,7 @@ export function Header() {
 function TagManagerContent() {
     const [newTagName, setNewTagName] = useState('');
     const [newTagColor, setNewTagColor] = useState(TAG_COLORS[0]);
+    const [showTechPresets, setShowTechPresets] = useState(false);
 
     const tags = useAppStore((s) => s.tags);
     const createTag = useAppStore((s) => s.createTag);
@@ -172,10 +175,67 @@ function TagManagerContent() {
         setNewTagColor(TAG_COLORS[Math.floor(Math.random() * TAG_COLORS.length)]);
     };
 
+    const handleQuickAddTech = async (techName: string, techColor: string) => {
+        // Check if tag already exists
+        const exists = tags.some(tag => tag.name.toLowerCase() === techName.toLowerCase());
+        if (!exists) {
+            await createTag(techName, techColor);
+        }
+    };
+
     return (
         <div className="space-y-4">
+            {/* Quick add popular technologies */}
+            <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-medium flex items-center gap-2">
+                        <Sparkles size={14} className="text-primary" />
+                        Popular Technologies
+                    </h3>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowTechPresets(!showTechPresets)}
+                        className="h-6 text-xs"
+                    >
+                        {showTechPresets ? 'Hide' : 'Show'}
+                    </Button>
+                </div>
+                
+                {showTechPresets && (
+                    <div className="flex flex-wrap gap-1.5 p-3 bg-secondary/30 rounded-lg max-h-40 overflow-y-auto">
+                        {POPULAR_TECHNOLOGIES.map((tech) => {
+                            const exists = tags.some(tag => tag.name.toLowerCase() === tech.name.toLowerCase());
+                            return (
+                                <button
+                                    key={tech.name}
+                                    onClick={() => handleQuickAddTech(tech.name, tech.color)}
+                                    disabled={exists}
+                                    className={cn(
+                                        'flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-all',
+                                        exists 
+                                            ? 'opacity-50 cursor-not-allowed bg-secondary/50' 
+                                            : 'hover:scale-105 hover:shadow-sm cursor-pointer'
+                                    )}
+                                    style={{
+                                        backgroundColor: exists ? undefined : `${tech.color}15`,
+                                        color: tech.color,
+                                        border: `1px solid ${tech.color}30`
+                                    }}
+                                    title={exists ? 'Already added' : `Add ${tech.name} tag`}
+                                >
+                                    <TechIcon slug={tech.iconSlug} size={12} color={tech.color} />
+                                    {tech.name}
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
+
             {/* Create new tag */}
             <div className="space-y-3">
+                <h3 className="text-sm font-medium">Create Custom Tag</h3>
                 <div className="flex gap-2">
                     <Input
                         type="text"
@@ -211,35 +271,38 @@ function TagManagerContent() {
             </div>
 
             {/* Existing tags */}
-            <div className="space-y-2 max-h-60 overflow-y-auto">
-                {tags.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">No tags yet</p>
-                ) : (
-                    tags.map((tag) => (
-                        <div
-                            key={tag.id}
-                            className="flex items-center justify-between p-2 rounded-lg bg-secondary/50"
-                        >
-                            <span
-                                className="text-sm px-2.5 py-1 rounded-full"
-                                style={{
-                                    backgroundColor: `${tag.color}20`,
-                                    color: tag.color,
-                                }}
+            <div className="space-y-2">
+                <h3 className="text-sm font-medium">Your Tags ({tags.length})</h3>
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {tags.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-4">No tags yet</p>
+                    ) : (
+                        tags.map((tag) => (
+                            <div
+                                key={tag.id}
+                                className="flex items-center justify-between p-2 rounded-lg bg-secondary/50"
                             >
-                                {tag.name}
-                            </span>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => deleteTag(tag.id)}
-                                className="h-6 w-6 hover:text-destructive"
-                            >
-                                <Trash2 size={14} />
-                            </Button>
-                        </div>
-                    ))
-                )}
+                                <span
+                                    className="text-sm px-2.5 py-1 rounded-full"
+                                    style={{
+                                        backgroundColor: `${tag.color}20`,
+                                        color: tag.color,
+                                    }}
+                                >
+                                    {tag.name}
+                                </span>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => deleteTag(tag.id)}
+                                    className="h-6 w-6 hover:text-destructive"
+                                >
+                                    <Trash2 size={14} />
+                                </Button>
+                            </div>
+                        ))
+                    )}
+                </div>
             </div>
         </div>
     );
