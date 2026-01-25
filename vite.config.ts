@@ -19,42 +19,14 @@ export default defineConfig(async () => ({
 
   // Build configuration
   build: {
-    rollupOptions: {
-      output: {
-        manualChunks: (id) => {
-          // Split large vendor libraries into separate chunks
-          if (id.includes('node_modules')) {
-            // React and React DOM
-            if (id.includes('react') || id.includes('react-dom')) {
-              return 'vendor-react';
-            }
-            // Radix UI components
-            if (id.includes('@radix-ui')) {
-              return 'vendor-radix';
-            }
-            // Icons
-            if (id.includes('lucide-react') || id.includes('@remixicon') || id.includes('simple-icons')) {
-              return 'vendor-icons';
-            }
-            // Syntax highlighting
-            if (id.includes('react-syntax-highlighter')) {
-              return 'vendor-syntax';
-            }
-            // Form libraries
-            if (id.includes('react-hook-form') || id.includes('@hookform') || id.includes('zod')) {
-              return 'vendor-forms';
-            }
-            // Other vendors
-            return 'vendor-other';
-          }
-        },
-      },
-    },
     // Increase chunk size warning limit since Tauri apps are local
     chunkSizeWarningLimit: 5000,
     // Ensure compatibility with older WebKit versions on Linux
     target: "es2015",
-    minify: false 
+    minify: false,
+    commonjsOptions: {
+      transformMixedEsModules: true,
+    }
   },
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
