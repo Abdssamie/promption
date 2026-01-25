@@ -1,25 +1,41 @@
 import { ZoomIn, ZoomOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
+import { getCurrentWebview } from '@tauri-apps/api/webview';
 
 export function ZoomControls() {
     const [zoom, setZoom] = useState(100);
 
-    const handleZoomIn = () => {
-        const newZoom = Math.min(zoom + 10, 200);
-        setZoom(newZoom);
-        document.body.style.zoom = `${newZoom}%`;
+    const handleZoomIn = async () => {
+        try {
+            const newZoom = Math.min(zoom + 10, 200);
+            const webview = getCurrentWebview();
+            await webview.setZoom(newZoom / 100);
+            setZoom(newZoom);
+        } catch (error) {
+            console.error('Failed to zoom in:', error);
+        }
     };
 
-    const handleZoomOut = () => {
-        const newZoom = Math.max(zoom - 10, 50);
-        setZoom(newZoom);
-        document.body.style.zoom = `${newZoom}%`;
+    const handleZoomOut = async () => {
+        try {
+            const newZoom = Math.max(zoom - 10, 50);
+            const webview = getCurrentWebview();
+            await webview.setZoom(newZoom / 100);
+            setZoom(newZoom);
+        } catch (error) {
+            console.error('Failed to zoom out:', error);
+        }
     };
 
-    const handleResetZoom = () => {
-        setZoom(100);
-        document.body.style.zoom = '100%';
+    const handleResetZoom = async () => {
+        try {
+            const webview = getCurrentWebview();
+            await webview.setZoom(1.0);
+            setZoom(100);
+        } catch (error) {
+            console.error('Failed to reset zoom:', error);
+        }
     };
 
     return (
