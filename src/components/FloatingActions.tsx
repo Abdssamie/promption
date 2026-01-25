@@ -1,4 +1,4 @@
-import { Plus, Download, Tags } from 'lucide-react';
+import { Plus, Download, Tags, Trash2, Lock } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAppStore } from '../store/appStore';
 import { exportItems } from '../services/export';
@@ -14,8 +14,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { TAG_COLORS } from '../lib/utils';
-import { POPULAR_TECHNOLOGIES } from '../constants/technologies';
-import { Trash2 } from 'lucide-react';
 
 export function FloatingActions() {
     const [isExporting, setIsExporting] = useState(false);
@@ -148,15 +146,10 @@ function TagManagerContent() {
     // Auto-create popular technology tags on first load
     useEffect(() => {
         const initializeTags = async () => {
-            for (const tech of POPULAR_TECHNOLOGIES) {
-                const exists = tags.some(tag => tag.name.toLowerCase() === tech.name.toLowerCase());
-                if (!exists) {
-                    await createTag(tech.name, tech.color);
-                }
-            }
+            // Tags are now initialized in database.ts on first connection
+            // This effect is kept for backward compatibility but does nothing
         };
         
-        // Only run if there are no tags yet
         if (tags.length === 0) {
             initializeTags();
         }
@@ -220,20 +213,26 @@ function TagManagerContent() {
                                 key={tag.id}
                                 className="flex items-center justify-between p-2 rounded-lg bg-secondary/50"
                             >
-                                <span
-                                    className="text-sm px-2.5 py-1 rounded-full"
-                                    style={{
-                                        backgroundColor: `${tag.color}20`,
-                                        color: tag.color,
-                                    }}
-                                >
-                                    {tag.name}
-                                </span>
+                                <div className="flex items-center gap-2">
+                                    {tag.is_system && (
+                                        <Lock size={12} className="text-primary" />
+                                    )}
+                                    <span
+                                        className="text-sm px-2.5 py-1 rounded-full"
+                                        style={{
+                                            backgroundColor: `${tag.color}20`,
+                                            color: tag.color,
+                                        }}
+                                    >
+                                        {tag.name}
+                                    </span>
+                                </div>
                                 <Button
                                     variant="ghost"
                                     size="icon"
                                     onClick={() => deleteTag(tag.id)}
-                                    className="h-6 w-6 hover:text-destructive"
+                                    disabled={tag.is_system}
+                                    className="h-6 w-6 hover:text-destructive disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <Trash2 size={14} />
                                 </Button>

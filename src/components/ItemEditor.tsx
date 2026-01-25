@@ -3,6 +3,7 @@ import { Save, Eye, Edit3, Copy, Check } from 'lucide-react';
 import { useAppStore } from '../store/appStore';
 import { cn, getItemTypeColor, getItemTypeLabel } from '../lib/utils';
 import { SyntaxHighlighter } from './SyntaxHighlighter';
+import { TagCombobox } from './TagCombobox';
 import type { Item, ItemType } from '../types';
 import {
     Dialog,
@@ -148,12 +149,6 @@ export function ItemEditor({ item, createType, onClose }: ItemEditorProps) {
         setTimeout(() => setCopied(false), 2000);
     };
 
-    const toggleTag = (tagId: string) => {
-        setSelectedTags((prev) =>
-            prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
-        );
-    };
-
     return (
         <Dialog open={true} onOpenChange={onClose}>
             <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
@@ -219,33 +214,11 @@ export function ItemEditor({ item, createType, onClose }: ItemEditorProps) {
                     {tags.length > 0 && (
                         <div className="space-y-2">
                             <Label>Tags</Label>
-                            <div className="flex flex-wrap gap-2">
-                                {tags.map((tag) => {
-                                    const isSelected = selectedTags.includes(tag.id);
-                                    return (
-                                        <Badge
-                                            key={tag.id}
-                                            variant="outline"
-                                            className={cn(
-                                                'cursor-pointer transition-all',
-                                                isSelected ? 'ring-2 ring-offset-1 ring-offset-background' : 'opacity-60 hover:opacity-100'
-                                            )}
-                                            style={{
-                                                backgroundColor: `${tag.color}20`,
-                                                color: tag.color,
-                                                borderColor: `${tag.color}`,
-                                                ...(isSelected ? { ringColor: tag.color } : {}),
-                                            }}
-                                            onClick={() => toggleTag(tag.id)}
-                                            asChild
-                                        >
-                                            <button>
-                                                {tag.name}
-                                            </button>
-                                        </Badge>
-                                    );
-                                })}
-                            </div>
+                            <TagCombobox
+                                tags={tags}
+                                selectedTagIds={selectedTags}
+                                onTagsChange={setSelectedTags}
+                            />
                         </div>
                     )}
 

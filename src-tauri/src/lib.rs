@@ -35,6 +35,14 @@ pub fn run() {
             "#,
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 2,
+            description: "Add is_system field to tags",
+            sql: r#"
+                ALTER TABLE tags ADD COLUMN is_system INTEGER NOT NULL DEFAULT 0;
+            "#,
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

@@ -4,6 +4,7 @@ export interface Tag {
     id: string;
     name: string;
     color: string;
+    is_system: boolean; // System tags cannot be deleted
     iconSlug?: string; // Optional icon slug for technology tags
 }
 

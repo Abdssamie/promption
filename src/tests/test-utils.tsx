@@ -20,6 +20,7 @@ export function createMockTag(override: Partial<Tag> = {}): Tag {
         id: `tag-${Math.random().toString(36).slice(2, 11)}`,
         name: 'Test Tag',
         color: '#6366f1',
+        is_system: false,
         ...override,
     };
 }

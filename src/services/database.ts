@@ -1,6 +1,7 @@
 import Database from '@tauri-apps/plugin-sql';
 import { v4 as uuidv4 } from 'uuid';
 import type { Item, Tag, ItemType, ItemFormData } from '../types';
+import { POPULAR_TECHNOLOGIES } from '../constants/technologies';
 
 let db: Database | null = null;
 
@@ -9,6 +10,9 @@ export async function getDb(): Promise<Database> {
         try {
             db = await Database.load('sqlite:promption.db');
             console.log('Database connection established');
+            
+            // Initialize system tags on first load
+            await initializeSystemTags();
         } catch (error) {
             console.error('Failed to connect to database:', error);
             throw error;
@@ -16,6 +20,28 @@ export async function getDb(): Promise<Database> {
     }
     return db;
 }
+
+// Initialize system technology tags
+async function initializeSystemTags(): Promise<void> {
+    try {
+        const existingTags = await db!.select<Tag[]>('SELECT name FROM tags WHERE is_system = 1');
+        const existingNames = new Set(existingTags.map(t => t.name.toLowerCase()));
+        
+        for (const tech of POPULAR_TECHNOLOGIES) {
+            if (!existingNames.has(tech.name.toLowerCase())) {
+                const id = uuidv4();
+                await db!.execute(
+                    'INSERT INTO tags (id, name, color, is_system) VALUES ($1, $2, $3, 1)',
+                    [id, tech.name, tech.color]
+                );
+                console.log(`Initialized system tag: ${tech.name}`);
+            }
+        }
+    } catch (error) {
+        console.error('Failed to initialize system tags:', error);
+    }
+}
+
 
 // Items CRUD
 export async function getAllItems(): Promise<Item[]> {
@@ -173,9 +199,12 @@ export async function deleteItem(id: string): Promise<void> {
 export async function getAllTags(): Promise<Tag[]> {
     const database = await getDb();
     try {
-        const tags = await database.select<Tag[]>('SELECT * FROM tags ORDER BY name');
+        const tags = await database.select<Tag[]>('SELECT id, name, color, CAST(is_system AS INTEGER) as is_system FROM tags ORDER BY is_system DESC, name');
         console.log(`Loaded ${tags.length} tags from database`);
-        return tags;
+        return tags.map(tag => ({
+            ...tag,
+            is_system: Boolean(tag.is_system)
+        }));
     } catch (error) {
         console.error('Failed to get all tags:', error);
         throw error;
@@ -192,29 +221,39 @@ export async function getItemTags(itemId: string): Promise<Tag[]> {
     );
 }
 
-export async function createTag(name: string, color: string): Promise<Tag> {
+export async function createTag(name: string, color: string, isSystem: boolean = false): Promise<Tag> {
     const database = await getDb();
     const id = uuidv4();
 
     await database.execute(
-        'INSERT INTO tags (id, name, color) VALUES ($1, $2, $3)',
-        [id, name, color]
+        'INSERT INTO tags (id, name, color, is_system) VALUES ($1, $2, $3, $4)',
+        [id, name, color, isSystem ? 1 : 0]
     );
 
-    return { id, name, color };
+    return { id, name, color, is_system: isSystem };
 }
 
 export async function updateTag(id: string, name: string, color: string): Promise<Tag> {
     const database = await getDb();
+    
+    // Get current tag to preserve is_system status
+    const currentTag = await database.select<Tag[]>('SELECT * FROM tags WHERE id = $1', [id]);
+    const isSystem = currentTag[0]?.is_system || false;
+    
     await database.execute(
         'UPDATE tags SET name = $1, color = $2 WHERE id = $3',
         [name, color, id]
     );
-    return { id, name, color };
+    return { id, name, color, is_system: isSystem };
 }
 
 export async function deleteTag(id: string): Promise<void> {
     const database = await getDb();
+    // Prevent deletion of system tags
+    const tag = await database.select<Tag[]>('SELECT is_system FROM tags WHERE id = $1', [id]);
+    if (tag[0]?.is_system) {
+        throw new Error('Cannot delete system tags');
+    }
     await database.execute('DELETE FROM tags WHERE id = $1', [id]);
 }
 
