@@ -22,7 +22,10 @@
       "identifier": "fs:scope",
       "allow": [
         {
-          "path": "**"
+          "path": "$HOME/.agent/**"
+        },
+        {
+          "path": "$HOME/**"
         }
       ]
     },
