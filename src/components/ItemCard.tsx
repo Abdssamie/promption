@@ -50,7 +50,7 @@ export function ItemCard({ item }: ItemCardProps) {
         >
             {/* Selection checkbox */}
             <div
-                className="absolute top-4 left-4 z-20"
+                className="absolute top-4 left-4 z-10"
                 onClick={(e) => e.stopPropagation()}
             >
                 <Checkbox
@@ -64,9 +64,9 @@ export function ItemCard({ item }: ItemCardProps) {
             </div>
 
             {/* Header */}
-            <CardHeader className="pl-12 p-4 pb-2 space-y-1">
+            <CardHeader className="pl-12 p-4 pb-2 space-y-1 relative z-0">
                 <div className="flex items-start justify-between min-w-0">
-                    <div className="flex-1 min-w-0 space-y-1">
+                    <div className="flex-1 min-w-0 space-y-1 pr-2">
                         <div className="flex items-center gap-2">
                             <span
                                 className="text-xs font-semibold px-2 py-0.5 rounded-full"
@@ -83,7 +83,7 @@ export function ItemCard({ item }: ItemCardProps) {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                         <Button
                             variant="ghost"
                             size="icon"
@@ -123,7 +123,7 @@ export function ItemCard({ item }: ItemCardProps) {
                                     border: `1px solid ${tag.color}30`
                                 }}
                             >
-                                {tag.name}
+                                #{tag.name}
                             </span>
                         ))}
                     </div>
