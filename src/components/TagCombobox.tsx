@@ -89,7 +89,7 @@ export function TagCombobox({ tags, selectedTagIds, onTagsChange }: TagComboboxP
                                     return (
                                         <ComboboxItem
                                             key={tag.id}
-                                            value={tag.name}
+                                            value={tag.id}
                                             onSelect={() => handleToggleTag(tag.id)}
                                             className="cursor-pointer justify-between"
                                         >
@@ -126,7 +126,7 @@ export function TagCombobox({ tags, selectedTagIds, onTagsChange }: TagComboboxP
                                     return (
                                         <ComboboxItem
                                             key={tag.id}
-                                            value={tag.name}
+                                            value={tag.id}
                                             onSelect={() => handleToggleTag(tag.id)}
                                             className="cursor-pointer justify-between"
                                         >
