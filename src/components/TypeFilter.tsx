@@ -15,12 +15,13 @@ export function TypeFilter() {
     const setTypeFilter = useAppStore((s) => s.setTypeFilter);
 
     return (
-        <Tabs value={typeFilter ?? 'all'} onValueChange={(value) => setTypeFilter(value === 'all' ? null : value as ItemType)}>
-            <TabsList>
+        <Tabs value={typeFilter ?? 'all'} onValueChange={(value) => setTypeFilter(value === 'all' ? null : value as ItemType)} className="flex-1">
+            <TabsList className="w-full grid grid-cols-4">
                 {types.map((type) => (
                     <TabsTrigger
                         key={type.value ?? 'all'}
                         value={type.value ?? 'all'}
+                        className="flex-1"
                         style={
                             typeFilter === type.value && type.value
                                 ? { borderLeft: `3px solid ${getItemTypeColor(type.value)}` }

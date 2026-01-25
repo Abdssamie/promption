@@ -59,9 +59,16 @@ export function Header() {
     return (
         <header className="flex items-center justify-between px-6 py-4 border-b bg-secondary/50">
             <div className="flex items-center gap-4">
-                <h1 className="text-xl font-bold">
-                    <span className="text-primary">Promp</span>tion
-                </h1>
+                <div className="flex items-center gap-3">
+                    <img 
+                        src="/promption.png" 
+                        alt="Promption Logo" 
+                        className="h-8 w-8 object-contain"
+                    />
+                    <h1 className="text-xl font-bold">
+                        <span className="text-primary">Promp</span>tion
+                    </h1>
+                </div>
 
                 {/* Selection controls */}
                 <div className="flex items-center gap-2 ml-4">

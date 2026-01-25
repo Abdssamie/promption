@@ -30,8 +30,8 @@ function App() {
 
       {/* Filters bar */}
       <div className="px-6 py-3 border-b border-border bg-bg-secondary space-y-3">
-        <div className="flex items-center gap-4">
-          <div className="w-80">
+        <div className="flex items-center gap-4 w-full">
+          <div className="flex-1">
             <SearchBar />
           </div>
           <TypeFilter />
