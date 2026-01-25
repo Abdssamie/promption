@@ -131,13 +131,13 @@ export function ItemCard({ item }: ItemCardProps) {
 
                 {/* Content preview */}
                 <div className="relative">
-                    <div className="text-xs rounded-md bg-muted/50 p-2 overflow-hidden max-h-32">
+                    <div className="text-xs rounded-md bg-muted/80 p-3 overflow-hidden max-h-32 border border-border/50">
                         <SyntaxHighlighter
                             content={truncateText(item.content, 300)}
                             language="markdown"
                         />
                     </div>
-                    <div className="absolute bottom-0 left-0 right-0 h-8 bg-linear-to-t from-card to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-card to-transparent pointer-events-none" />
                 </div>
             </CardContent>
         </Card>

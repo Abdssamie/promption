@@ -1,5 +1,6 @@
 import { Prism as ReactSyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { useTheme } from 'next-themes';
 
 interface SyntaxHighlighterProps {
     content: string;
@@ -7,10 +8,12 @@ interface SyntaxHighlighterProps {
 }
 
 export function SyntaxHighlighter({ content, language = 'markdown' }: SyntaxHighlighterProps) {
+    const { theme } = useTheme();
+    
     return (
         <ReactSyntaxHighlighter
             language={language}
-            style={oneDark}
+            style={theme === 'dark' ? oneDark : oneLight}
             className="syntax-highlighter"
             customStyle={{
                 background: 'transparent',
@@ -22,6 +25,7 @@ export function SyntaxHighlighter({ content, language = 'markdown' }: SyntaxHigh
             codeTagProps={{
                 style: {
                     fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
+                    textShadow: theme === 'dark' ? '0 0 1px rgba(255,255,255,0.1)' : 'none',
                 },
             }}
         >
