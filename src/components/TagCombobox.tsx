@@ -50,6 +50,8 @@ export function TagCombobox({ tags, selectedTagIds, onTagsChange }: TagComboboxP
         } else {
             onTagsChange([...selectedTagIds, tagId]);
         }
+        // Clear search after selection
+        setSearchQuery('');
     };
 
     const handleRemoveTag = (tagId: string) => {
