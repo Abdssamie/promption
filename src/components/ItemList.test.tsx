@@ -105,7 +105,7 @@ describe('ItemList', () => {
             const { container } = render(<ItemList />);
             const grid = container.querySelector('.grid');
             expect(grid).toBeInTheDocument();
-            expect(grid).toHaveClass('grid-cols-1', 'lg:grid-cols-2', 'xl:grid-cols-3');
+            expect(grid).toHaveClass('grid-cols-1', 'md:grid-cols-2', 'lg:grid-cols-3');
         });
     });
 
