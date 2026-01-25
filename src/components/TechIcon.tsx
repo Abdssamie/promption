@@ -21,7 +21,7 @@ export function TechIcon({ slug, size = 16, color, className = '' }: TechIconPro
     return (
         <div
             className={className}
-            style={{ width: size, height: size }}
+            style={{ width: size, height: size, flexShrink: 0 }}
             dangerouslySetInnerHTML={{
                 __html: icon.svg.replace('<svg', `<svg fill="${iconColor}" width="${size}" height="${size}"`),
             }}

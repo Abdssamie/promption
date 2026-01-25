@@ -12,6 +12,8 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { TechIcon } from './TechIcon';
+import { POPULAR_TECHNOLOGIES } from '../constants/technologies';
 
 interface ItemCardProps {
     item: Item;
@@ -113,19 +115,27 @@ export function ItemCard({ item }: ItemCardProps) {
                 {/* Tags */}
                 {item.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mb-3">
-                        {item.tags.map((tag) => (
-                            <span
-                                key={tag.id}
-                                className="text-xs px-2 py-0.5 rounded-full bg-secondary/50 text-secondary-foreground"
-                                style={{
-                                    backgroundColor: `${tag.color}15`, // More subtle
-                                    color: tag.color,
-                                    border: `1px solid ${tag.color}30`
-                                }}
-                            >
-                                #{tag.name}
-                            </span>
-                        ))}
+                        {item.tags.map((tag) => {
+                            // Check if this tag matches a technology
+                            const tech = POPULAR_TECHNOLOGIES.find(
+                                t => t.name.toLowerCase() === tag.name.toLowerCase()
+                            );
+                            
+                            return (
+                                <span
+                                    key={tag.id}
+                                    className="text-xs px-2 py-1 rounded-full bg-secondary/50 text-secondary-foreground flex items-center gap-1.5"
+                                    style={{
+                                        backgroundColor: `${tag.color}15`,
+                                        color: tag.color,
+                                        border: `1px solid ${tag.color}30`
+                                    }}
+                                >
+                                    {tech && <TechIcon slug={tech.iconSlug} size={16} color={tech.color} />}
+                                    #{tag.name}
+                                </span>
+                            );
+                        })}
                     </div>
                 )}
 
@@ -137,7 +147,6 @@ export function ItemCard({ item }: ItemCardProps) {
                             language="markdown"
                         />
                     </div>
-                    <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-card to-transparent pointer-events-none" />
                 </div>
             </CardContent>
         </Card>

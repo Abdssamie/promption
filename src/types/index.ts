@@ -4,6 +4,7 @@ export interface Tag {
     id: string;
     name: string;
     color: string;
+    iconSlug?: string; // Optional icon slug for technology tags
 }
 
 export interface Item {

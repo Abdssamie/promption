@@ -6,6 +6,7 @@ import { TypeFilter } from './components/TypeFilter';
 import { TagFilter } from './components/TagFilter';
 import { ItemList } from './components/ItemList';
 import { ItemEditor } from './components/ItemEditor';
+import { FloatingActions } from './components/FloatingActions';
 
 function App() {
   const loadData = useAppStore((s) => s.loadData);
@@ -25,7 +26,7 @@ function App() {
   };
 
   return (
-    <div className="h-full flex flex-col bg-bg-primary">
+    <div className="h-screen flex flex-col bg-bg-primary">
       <Header />
 
       {/* Filters bar */}
@@ -40,7 +41,9 @@ function App() {
       </div>
 
       {/* Main content */}
-      <ItemList />
+      <div className="flex-1 overflow-hidden">
+        <ItemList />
+      </div>
 
       {/* Editor modal */}
       {(editingItem || isCreating) && (
@@ -50,6 +53,9 @@ function App() {
           onClose={handleCloseEditor}
         />
       )}
+
+      {/* Floating Actions Widget */}
+      <FloatingActions />
     </div>
   );
 }
