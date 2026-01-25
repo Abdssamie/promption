@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { POPULAR_TECHNOLOGIES } from '../constants/technologies';
 import { TechIcon } from './TechIcon';
+import { ThemeToggle } from './ThemeToggle';
 
 export function Header() {
     const [isExporting, setIsExporting] = useState(false);
@@ -95,6 +96,9 @@ export function Header() {
                         {exportMessage.text}
                     </div>
                 )}
+
+                {/* Theme Toggle */}
+                <ThemeToggle />
 
                 {/* Tag Manager */}
                 <Dialog>
