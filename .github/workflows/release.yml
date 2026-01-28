@@ -6,131 +6,67 @@ on:
   workflow_dispatch:
 
 jobs:
-  create-release:
-    permissions:
-      contents: write
-    runs-on: ubuntu-22.04
-    outputs:
-      release_id: ${{ steps.create-release.outputs.result }}
-      version: ${{ steps.get-version.outputs.version }}
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Get version from tag
-        id: get-version
-        run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Version: $VERSION"
-
-      - name: Generate changelog
-        id: changelog
-        run: |
-          # Get the previous tag
-          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
-          
-          if [ -z "$PREVIOUS_TAG" ]; then
-            CHANGELOG="Initial release"
-          else
-            # Generate changelog from commits
-            CHANGELOG=$(git log ${PREVIOUS_TAG}..HEAD --pretty=format:"- %s" --no-merges)
-          fi
-          
-          # Save to file for multiline handling
-          echo "$CHANGELOG" > changelog.txt
-
-      - name: Create Release
-        id: create-release
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const changelog = fs.readFileSync('changelog.txt', 'utf8');
-            const version = '${{ steps.get-version.outputs.version }}';
-            
-            const { data } = await github.rest.repos.createRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              tag_name: `v${version}`,
-              name: `Promption v${version}`,
-              body: `# 🎉 Release v${version}
-
-## Changes
-${changelog}
-
-## Installation
-
-Download the appropriate installer for your platform below.
-
-### Supported Platforms
-- 🍎 **macOS** (Intel & Apple Silicon)
-- 🐧 **Linux** (.deb, .AppImage)
-- 🪟 **Windows** (.msi, .exe)`,
-              draft: false,
-              prerelease: false
-            });
-            return data.id;
-
-  build-tauri:
-    needs: create-release
+  release:
     permissions:
       contents: write
     strategy:
       fail-fast: false
       matrix:
         include:
-          - platform: 'macos-latest'
+          - platform: 'macos-latest' # for Arm based macs (M1 and above).
             args: '--target aarch64-apple-darwin'
-            target: 'aarch64-apple-darwin'
-          - platform: 'macos-latest'
+          - platform: 'macos-latest' # for Intel based macs.
             args: '--target x86_64-apple-darwin'
-            target: 'x86_64-apple-darwin'
           - platform: 'ubuntu-22.04'
-            args: '--bundles deb,rpm,appimage'
-            target: 'x86_64-unknown-linux-gnu'
+            args: ''
           - platform: 'windows-latest'
             args: ''
-            target: 'x86_64-pc-windows-msvc'
 
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install dependencies (Ubuntu only)
+      - name: install dependencies (ubuntu only)
         if: matrix.platform == 'ubuntu-22.04'
+        # Install libwebkit2gtk-4.1-dev instead of 4.0 for Tauri v2
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libfuse2
 
-      - name: Setup Node.js
+      - name: setup node
         uses: actions/setup-node@v4
         with:
           node-version: lts/*
 
-      - name: Setup Bun
+      - name: setup bun
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
 
-      - name: Install Rust stable
+      - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
+          # Those targets are only used on macos runners so it's in an `if` to slightly speed up windows and linux builds.
           targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
           workspaces: './src-tauri -> target'
-          key: ${{ matrix.target }}
 
-      - name: Install frontend dependencies
+      - name: install frontend dependencies
+        # Build the frontend before tauri build if needed, but tauri-action usually handles it via beforeBuildCommand. 
+        # However, since we use bun, we need to ensure dependencies are installed.
         run: bun install
 
-      - name: Build Tauri app
+      - name: Build and Release
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          releaseId: ${{ needs.create-release.outputs.release_id }}
+          tagName: app-v__VERSION__ 
+          releaseName: 'App v__VERSION__'
+          releaseBody: 'See the assets to download this version and install.'
+          releaseDraft: true
+          prerelease: false
           args: ${{ matrix.args }}
