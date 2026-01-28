@@ -1,84 +1,223 @@
 # Promption
 
-**Promption** is a modern, privacy-focused AI prompt manager application built for speed and efficiency. It allows you to organize, refine, and manage your AI prompts in a beautiful, native desktop environment.
+A desktop app + CLI for managing AI agent configurations across projects.
 
-Built with performance and aesthetics in mind, Promption leverages the power of **Tauri** for a lightweight footprint and **React** for a dynamic user interface.
+## The Problem
 
-## ✨ Key Features
+AI coding assistants (Cursor, Windsurf, Qoder, etc.) use configuration files to guide their behavior:
+- Agent rules (coding standards, best practices)
+- Skills (reusable prompt templates)
+- Workflows (reusable commands and prompts)
 
-- **🚀 Native Performance**: Built on Rust and Tauri for blazing fast performance and low memory usage.
-- **🎨 Modern CI/UI**: sleek, accessible interface powered by Shadcn/UI and TailwindCSS v4.
-- **📝 Syntax Highlighting**: Rich editing experience for your prompts with `react-syntax-highlighter`.
-- **🔒 Privacy First**: Your prompts are stored locally using SQLite. No external servers.
-- **⚡ productivity Focused**: Keyboard shortcuts and streamlined workflows.
-- **🌑 Dark/Light Mode**: Fully themable interface.
+Managing these across multiple projects means:
+- Manually copying configuration folders between projects
+- Losing track of which configs work with which tech stacks
+- No easy way to organize or search through your prompt library
+- Difficult to share configurations with team members
+
+## What Promption Does
+
+**Desktop App:**
+- Centralized library for your AI agent configurations
+- Tag by technology (React, Python, Rust, etc.)
+- Full-text search
+- Syntax highlighting for better readability
+- Keyboard shortcuts for faster workflow
+
+**CLI:**
+```bash
+# List your saved configurations
+promption list
+
+# Export selected configs to current project
+promption sync --ids=abc123,def456
+
+# Creates folder structure based on your tool's convention:
+# .agent/, .cursor/, .aider/, etc.
+```
+
+**Supported Tools:**
+- ✅ Qoder (Antigravity IDE)
+- 🔜 Cursor, Windsurf, Opencode, Claude Code (planned)
+
+## Features
+
+- **Local Storage**: All data stored in SQLite on your machine
+- **Single Binary**: Works as both GUI and CLI
+- **Smart Organization**: Tag and categorize your configurations
+- **Keyboard Navigation**: Full keyboard shortcuts
+- **Cross-Platform**: Works on macOS, Linux, and Windows
+
+## Installation
+
+Download from [releases](https://github.com/Abdssamie/promption/releases) or build from source:
+
+```bash
+git clone https://github.com/Abdssamie/promption.git
+cd promption
+bun install
+bun run tauri build
+```
+
+**Requirements:**
+- [Rust & Cargo](https://www.rust-lang.org/tools/install)
+- [Node.js](https://nodejs.org/)
+- [Bun](https://bun.sh/)
+
+## Usage
+
+### Desktop App
+
+1. Launch the app
+2. Create and organize your skills, rules, and workflows
+3. Add technology tags for easier filtering
+4. Select items you want to use in a project
+5. Click "Copy Cmd" to get the sync command
+
+### CLI
+
+```bash
+# List all items
+promption list
+promption list --type=skill
+
+# Export to current directory
+promption sync --ids=abc123,def456
+```
+
+### Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+N` | New skill |
+| `Ctrl+Shift+S/R/W` | New skill/rule/workflow |
+| `Ctrl+A` | Select all |
+| `Ctrl+D` | Deselect all |
+| `Ctrl+C` | Copy sync command |
+| `Ctrl+F` | Focus search |
+| `Esc` | Close / Deselect |
+
+## Tech Stack
+
+- **Core**: Tauri v2, Rust
+- **Frontend**: React 19, TypeScript, Vite
+- **UI**: TailwindCSS v4, Shadcn/UI
+- **State**: Zustand
+- **Database**: SQLite
+- **CLI**: Clap, Rusqlite
+
+## Development
+
+```bash
+# Run in dev mode
+bun run tauri dev
+
+# Run tests
+bun test
+
+# Build
+bun run tauri build
+```
+
+## License
+
+[MIT](LICENSE)  
+- 🔜 **OpenCode** - Coming soon
+- 🔜 **Claude Desktop** - Coming soon
+
+## 🚀 Key Features
+
+- **🔒 Privacy First**: All data stored locally in SQLite. No cloud, no tracking.
+- **⚡ Unified Binary**: Single executable works as both GUI and CLI.
+- **🏷️ Smart Tagging**: Organize by technology, project type, or custom tags.
+- **⌨️ Keyboard Navigation**: Full keyboard shortcuts for zero-mouse workflow.
+- **🎨 Modern UI**: Built with React 19, Tauri v2, and Shadcn/UI.
+- **🌑 Dark/Light Mode**: Adaptive theming for day and night coding.
 
 ## 🛠️ Tech Stack
 
 - **Core**: [Tauri v2](https://v2.tauri.app/), [Rust](https://www.rust-lang.org/)
 - **Frontend**: [React 19](https://react.dev/), [TypeScript](https://www.typescriptlang.org/)
 - **Build Tool**: [Vite](https://vitejs.dev/)
-- **Styling**: [TailwindCSS v4](https://tailwindcss.com/), [Shadcn/UI](https://ui.shadcn.com/), [Radix UI](https://www.radix-ui.com/)
+- **Styling**: [TailwindCSS v4](https://tailwindcss.com/), [Shadcn/UI](https://ui.shadcn.com/)
 - **State Management**: [Zustand](https://zustand-demo.pmnd.rs/)
-- **Form Handling**: [React Hook Form](https://react-hook-form.com/), [Zod](https://zod.dev/)
-- **Icons**: [Lucide React](https://lucide.dev/), [Remix Icons](https://remixicon.com/), [Simple Icons](https://simpleicons.org/)
-- **Testing**: [Vitest](https://vitest.dev/), [React Testing Library](https://testing-library.com/)
+- **Database**: SQLite (via tauri-plugin-sql)
+- **CLI**: Rust + Clap + Rusqlite
 
-## 📦 Prerequisites
+## 📦 Installation
 
-Before you begin, ensure you have the following installed:
-
-- **[Rust & Cargo](https://www.rust-lang.org/tools/install)** (Required for Tauri)
-- **[Node.js](https://nodejs.org/)** (LTS recommended)
-- **[Bun](https://bun.sh/)** (Package manager used in this project)
-
-## 🚀 Getting Started
-
-1.  **Clone the repository:**
-
-    ```bash
-    git clone https://github.com/Abdssamie/promption.git
-    cd promption
-    ```
-
-2.  **Install dependencies:**
-
-    ```bash
-    bun install
-    ```
-
-3.  **Run in development mode:**
-
-    ```bash
-    bun run tauri dev
-    ```
-    This will start the frontend dev server and open the localized Tauri window.
-
-## 🏗️ Building for Production
-
-To build the application for your OS:
-
+**Pre-built binaries** (recommended):
 ```bash
+# Download from releases
+# https://github.com/Abdssamie/promption/releases
+```
+
+**Build from source:**
+```bash
+git clone https://github.com/Abdssamie/promption.git
+cd promption
+bun install
 bun run tauri build
 ```
 
-The build artifacts will be located in the `src-tauri/target/release/bundle` directory.
+**Requirements:**
+- [Rust & Cargo](https://www.rust-lang.org/tools/install)
+- [Node.js](https://nodejs.org/) (LTS)
+- [Bun](https://bun.sh/)
 
-## 🧪 Testing
+## 🎮 Usage
 
-Run the test suite with Vitest:
+### Desktop App
+
+1. **Launch Promption** (double-click the app)
+2. **Create items**: Skills, Rules, or Workflows
+3. **Tag them**: Add technology tags (React, Python, etc.)
+4. **Select items** you want to sync to a project
+5. **Click "Copy Cmd"** to get the CLI command
+
+### CLI
 
 ```bash
-# Run tests
-bun run test
+# List all items
+promption list
+promption list --type=skill
 
-# Run validation with coverage
-bun run test:coverage
+# Sync to current directory
+promption sync --ids=abc123,def456
+
+# Result: .agent/ folder created with your configs
+```
+
+### Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+N` | Create new skill |
+| `Ctrl+Shift+S` | Create skill |
+| `Ctrl+Shift+R` | Create rule |
+| `Ctrl+Shift+W` | Create workflow |
+| `Ctrl+A` | Select all items |
+| `Ctrl+D` | Deselect all |
+| `Ctrl+C` | Copy sync command |
+| `Ctrl+F` | Focus search |
+| `Esc` | Close dialog / Deselect |
+
+## 🧪 Development
+
+```bash
+# Run in dev mode
+bun run tauri dev
+
+# Run tests
+bun test
+
+# Build for production
+bun run tauri build
 ```
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions welcome! Please submit a Pull Request.
 
 ## 📄 License
 
