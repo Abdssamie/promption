@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useAppStore } from './store/appStore';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { Header } from './components/Header';
 import { SearchBar } from './components/SearchBar';
 import { TypeFilter } from './components/TypeFilter';
@@ -15,6 +16,9 @@ function App() {
   const createType = useAppStore((s) => s.createType);
   const setEditing = useAppStore((s) => s.setEditing);
   const setCreating = useAppStore((s) => s.setCreating);
+
+  // Initialize keyboard shortcuts
+  useKeyboardShortcuts();
 
   useEffect(() => {
     loadData();

@@ -3,6 +3,39 @@ import { v4 as uuidv4 } from 'uuid';
 import type { Item, Tag, ItemType, ItemFormData } from '../types';
 import { POPULAR_TECHNOLOGIES } from '../constants/technologies';
 
+// Validation constants for security and data integrity
+const MAX_NAME_LENGTH = 255;
+const MAX_CONTENT_LENGTH = 1000000; // 1MB for content
+const MAX_TAG_NAME_LENGTH = 50;
+
+function validateInput(name: string, content: string): void {
+    if (name.length > MAX_NAME_LENGTH) {
+        throw new Error(`Name exceeds maximum length of ${MAX_NAME_LENGTH} characters`);
+    }
+    if (content.length > MAX_CONTENT_LENGTH) {
+        throw new Error(`Content exceeds maximum length of ${MAX_CONTENT_LENGTH} characters`);
+    }
+    if (!name.trim()) {
+        throw new Error('Name cannot be empty');
+    }
+    if (!content.trim()) {
+        throw new Error('Content cannot be empty');
+    }
+}
+
+function validateTag(name: string, color: string): void {
+    if (name.length > MAX_TAG_NAME_LENGTH) {
+        throw new Error(`Tag name exceeds maximum length of ${MAX_TAG_NAME_LENGTH} characters`);
+    }
+    if (!name.trim()) {
+        throw new Error('Tag name cannot be empty');
+    }
+    // Validate color format (hex color with optional alpha)
+    if (!/^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$/.test(color)) {
+        throw new Error('Invalid color format. Use #RRGGBB or #RRGGBBAA');
+    }
+}
+
 let db: Database | null = null;
 
 export async function getDb(): Promise<Database> {
@@ -94,6 +127,9 @@ export async function createItem(data: ItemFormData): Promise<Item> {
     const id = uuidv4();
     const now = new Date().toISOString();
 
+    // Validate input before database operation
+    validateInput(data.name, data.content);
+
     try {
         await database.execute(
             'INSERT INTO items (id, name, content, item_type, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6)',
@@ -128,6 +164,19 @@ export async function createItem(data: ItemFormData): Promise<Item> {
 export async function updateItem(id: string, data: Partial<ItemFormData>): Promise<Item> {
     const database = await getDb();
     const now = new Date().toISOString();
+
+    // Validate input if name or content are being updated
+    if (data.name !== undefined && data.content !== undefined) {
+        validateInput(data.name, data.content);
+    } else if (data.name !== undefined) {
+        if (data.name.length > MAX_NAME_LENGTH || !data.name.trim()) {
+            throw new Error('Invalid name');
+        }
+    } else if (data.content !== undefined) {
+        if (data.content.length > MAX_CONTENT_LENGTH || !data.content.trim()) {
+            throw new Error('Invalid content');
+        }
+    }
 
     try {
         if (data.name !== undefined || data.content !== undefined || data.item_type !== undefined) {
@@ -225,6 +274,9 @@ export async function createTag(name: string, color: string, isSystem: boolean =
     const database = await getDb();
     const id = uuidv4();
 
+    // Validate tag input
+    validateTag(name, color);
+
     await database.execute(
         'INSERT INTO tags (id, name, color, is_system) VALUES ($1, $2, $3, $4)',
         [id, name, color, isSystem ? 1 : 0]
@@ -235,6 +287,9 @@ export async function createTag(name: string, color: string, isSystem: boolean =
 
 export async function updateTag(id: string, name: string, color: string): Promise<Tag> {
     const database = await getDb();
+    
+    // Validate tag input
+    validateTag(name, color);
     
     // Get current tag to preserve is_system status
     const currentTag = await database.select<Tag[]>('SELECT * FROM tags WHERE id = $1', [id]);

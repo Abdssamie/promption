@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Save, Eye, Edit3, Copy, Check } from 'lucide-react';
 import { useAppStore } from '../store/appStore';
 import { cn, getItemTypeColor, getItemTypeLabel } from '../lib/utils';
@@ -112,6 +112,17 @@ export function ItemEditor({ item, createType, onClose }: ItemEditorProps) {
     const [mode, setMode] = useState<'edit' | 'preview'>('edit');
     const [copied, setCopied] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const copyTimeoutRef = useRef<number | null>(null);
+
+    // Cleanup timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (copyTimeoutRef.current !== null) {
+                clearTimeout(copyTimeoutRef.current);
+            }
+        };
+    }, []);
 
     const tags = useAppStore((s) => s.tags);
     const createItem = useAppStore((s) => s.createItem);
@@ -121,6 +132,7 @@ export function ItemEditor({ item, createType, onClose }: ItemEditorProps) {
         if (!name.trim() || !content.trim()) return;
 
         setIsSaving(true);
+        setError(null);
         try {
             if (isCreating) {
                 await createItem({
@@ -138,6 +150,10 @@ export function ItemEditor({ item, createType, onClose }: ItemEditorProps) {
                 });
             }
             onClose();
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Failed to save item';
+            setError(message);
+            console.error('Save error:', err);
         } finally {
             setIsSaving(false);
         }
@@ -146,7 +162,13 @@ export function ItemEditor({ item, createType, onClose }: ItemEditorProps) {
     const handleCopy = async () => {
         await navigator.clipboard.writeText(content);
         setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        if (copyTimeoutRef.current !== null) {
+            clearTimeout(copyTimeoutRef.current);
+        }
+        copyTimeoutRef.current = window.setTimeout(() => {
+            setCopied(false);
+            copyTimeoutRef.current = null;
+        }, 2000);
     };
 
     return (
@@ -174,6 +196,13 @@ export function ItemEditor({ item, createType, onClose }: ItemEditorProps) {
 
                 {/* Form */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+                    {/* Error message */}
+                    {error && (
+                        <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm">
+                            {error}
+                        </div>
+                    )}
+
                     {/* Name and Type */}
                     <div className="flex gap-4">
                         <div className="flex-1 space-y-2">

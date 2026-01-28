@@ -1,7 +1,6 @@
-import { Plus, Download, Tags, Trash2, Lock } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Plus, Copy, Tags, Trash2, Lock, Check } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { useAppStore } from '../store/appStore';
-import { exportItems } from '../services/export';
 import { cn } from '../lib/utils';
 import type { ItemType } from '../types';
 import { Button } from '@/components/ui/button';
@@ -16,33 +15,67 @@ import { Input } from '@/components/ui/input';
 import { TAG_COLORS } from '../lib/utils';
 
 export function FloatingActions() {
-    const [isExporting, setIsExporting] = useState(false);
-    const [exportMessage, setExportMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const [copied, setCopied] = useState(false);
+    const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const messageTimeoutRef = useRef<number | null>(null);
+    const copiedTimeoutRef = useRef<number | null>(null);
 
     const selectedItems = useAppStore((s) => s.selectedItems);
     const getSelectedItemsData = useAppStore((s) => s.getSelectedItemsData);
     const setCreating = useAppStore((s) => s.setCreating);
-    const deselectAll = useAppStore((s) => s.deselectAll);
 
-    const handleExport = async () => {
+    // Cleanup timeouts on unmount
+    useEffect(() => {
+        return () => {
+            if (messageTimeoutRef.current !== null) {
+                clearTimeout(messageTimeoutRef.current);
+            }
+            if (copiedTimeoutRef.current !== null) {
+                clearTimeout(copiedTimeoutRef.current);
+            }
+        };
+    }, []);
+
+    const handleCopyCommand = async () => {
         const itemsToExport = getSelectedItemsData();
         if (itemsToExport.length === 0) {
-            setExportMessage({ type: 'error', text: 'Select items to export' });
-            setTimeout(() => setExportMessage(null), 3000);
+            setMessage({ type: 'error', text: 'Select items first' });
+            if (messageTimeoutRef.current !== null) {
+                clearTimeout(messageTimeoutRef.current);
+            }
+            messageTimeoutRef.current = window.setTimeout(() => {
+                setMessage(null);
+                messageTimeoutRef.current = null;
+            }, 3000);
             return;
         }
 
-        setIsExporting(true);
-        const result = await exportItems(itemsToExport);
-        setIsExporting(false);
-
-        if (result.success) {
-            setExportMessage({ type: 'success', text: `Exported to ${result.path}` });
-            deselectAll();
-        } else {
-            setExportMessage({ type: 'error', text: result.error ?? 'Export failed' });
+        const ids = itemsToExport.map((item) => item.id).join(',');
+        const command = `promption sync --ids=${ids}`;
+        
+        try {
+            await navigator.clipboard.writeText(command);
+            setCopied(true);
+            setMessage({ type: 'success', text: 'Command copied! Run in your project directory' });
+            
+            if (copiedTimeoutRef.current !== null) {
+                clearTimeout(copiedTimeoutRef.current);
+            }
+            copiedTimeoutRef.current = window.setTimeout(() => {
+                setCopied(false);
+                copiedTimeoutRef.current = null;
+            }, 2000);
+        } catch {
+            setMessage({ type: 'error', text: 'Failed to copy command' });
         }
-        setTimeout(() => setExportMessage(null), 4000);
+        
+        if (messageTimeoutRef.current !== null) {
+            clearTimeout(messageTimeoutRef.current);
+        }
+        messageTimeoutRef.current = window.setTimeout(() => {
+            setMessage(null);
+            messageTimeoutRef.current = null;
+        }, 4000);
     };
 
     const handleCreateNew = (type: ItemType) => {
@@ -51,18 +84,18 @@ export function FloatingActions() {
 
     return (
         <>
-            {/* Export message toast */}
-            {exportMessage && (
+            {/* Message toast */}
+            {message && (
                 <div className="fixed bottom-24 right-6 z-50 animate-fadeIn">
                     <div
                         className={cn(
                             'px-4 py-2 rounded-lg text-sm shadow-lg',
-                            exportMessage.type === 'success'
+                            message.type === 'success'
                                 ? 'bg-green-500/20 text-green-500 border border-green-500/30'
                                 : 'bg-destructive/20 text-destructive border border-destructive/30'
                         )}
                     >
-                        {exportMessage.text}
+                        {message.text}
                     </div>
                 </div>
             )}
@@ -86,16 +119,16 @@ export function FloatingActions() {
                         </DialogContent>
                     </Dialog>
 
-                    {/* Export */}
+                    {/* Copy Command */}
                     <Button
                         variant="ghost"
                         size="sm"
-                        onClick={handleExport}
-                        disabled={isExporting || selectedItems.size === 0}
+                        onClick={handleCopyCommand}
+                        disabled={selectedItems.size === 0}
                         className="gap-2"
                     >
-                        <Download size={16} />
-                        Export
+                        {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+                        {copied ? 'Copied!' : 'Copy Cmd'}
                     </Button>
 
                     {/* Divider */}
@@ -142,18 +175,6 @@ function TagManagerContent() {
     const tags = useAppStore((s) => s.tags);
     const createTag = useAppStore((s) => s.createTag);
     const deleteTag = useAppStore((s) => s.deleteTag);
-
-    // Auto-create popular technology tags on first load
-    useEffect(() => {
-        const initializeTags = async () => {
-            // Tags are now initialized in database.ts on first connection
-            // This effect is kept for backward compatibility but does nothing
-        };
-        
-        if (tags.length === 0) {
-            initializeTags();
-        }
-    }, []);
 
     const handleCreateTag = async () => {
         if (!newTagName.trim()) return;

@@ -19,6 +19,7 @@ export function SearchBar() {
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search prompts, skills, rules..."
                 className="pl-10 pr-10"
+                data-search-input
             />
             {searchQuery && (
                 <Button

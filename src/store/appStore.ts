@@ -127,8 +127,9 @@ export const useAppStore = create<AppState & AppActions & AppComputed>((set, get
             console.log('Item created successfully:', item.id);
             return item;
         } catch (error) {
+            const message = error instanceof Error ? error.message : 'Failed to create item';
             console.error('Failed to create item:', error);
-            throw error;
+            throw new Error(message);
         }
     },
 
@@ -147,8 +148,9 @@ export const useAppStore = create<AppState & AppActions & AppComputed>((set, get
             console.log('Item updated successfully:', item.id);
             return item;
         } catch (error) {
+            const message = error instanceof Error ? error.message : 'Failed to update item';
             console.error('Failed to update item:', error);
-            throw error;
+            throw new Error(message);
         }
     },
 
@@ -182,8 +184,9 @@ export const useAppStore = create<AppState & AppActions & AppComputed>((set, get
             console.log('Tag created successfully:', tag.id);
             return tag;
         } catch (error) {
+            const message = error instanceof Error ? error.message : 'Failed to create tag';
             console.error('Failed to create tag:', error);
-            throw error;
+            throw new Error(message);
         }
     },
 

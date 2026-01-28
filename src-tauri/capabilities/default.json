@@ -13,24 +13,8 @@
     "sql:allow-execute",
     "sql:allow-select",
     "sql:allow-close",
-    "fs:default",
-    "fs:allow-exists",
-    "fs:allow-mkdir",
-    "fs:allow-write-text-file",
-    "fs:allow-read-text-file",
-        "core:webview:default",
-          "core:webview:allow-set-webview-zoom",
-    {
-      "identifier": "fs:scope",
-      "allow": [
-        {
-          "path": "**"
-        },
-        {
-          "path": "$HOME/**"
-        }
-      ]
-    },
+    "core:webview:default",
+    "core:webview:allow-set-webview-zoom",
     "dialog:default",
     "dialog:allow-open",
     "dialog:allow-save"
