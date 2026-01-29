@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { ThemeToggle } from './ThemeToggle';
 import { ZoomControls } from './ZoomControls';
 import { KeyboardShortcutsHelp } from './KeyboardShortcutsHelp';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export function Header() {
     const selectedItems = useAppStore((s) => s.selectedItems);
@@ -12,6 +12,22 @@ export function Header() {
     const selectAll = useAppStore((s) => s.selectAll);
     const deselectAll = useAppStore((s) => s.deselectAll);
     const [showShortcuts, setShowShortcuts] = useState(false);
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === '?' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+                const target = e.target as HTMLElement;
+                if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+                    return;
+                }
+                e.preventDefault();
+                setShowShortcuts(prev => !prev);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
 
     const hasSelection = selectedItems.size > 0;
     const allSelected = filteredItems.length > 0 && filteredItems.every((i) => selectedItems.has(i.id));

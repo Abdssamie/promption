@@ -26,6 +26,7 @@ const SHORTCUTS: Shortcut[] = [
     { keys: ['Cmd', 'A'], description: 'Select All' },
     { keys: ['Cmd', 'D'], description: 'Deselect All' },
     { keys: ['Cmd', 'C'], description: 'Copy Command (Selected)' },
+    { keys: ['?'], description: 'Keyboard Shortcuts' },
     { keys: ['Esc'], description: 'Close / Deselect' },
 ];
 
