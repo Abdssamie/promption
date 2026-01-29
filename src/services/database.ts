@@ -2,6 +2,7 @@ import Database from '@tauri-apps/plugin-sql';
 import { v4 as uuidv4 } from 'uuid';
 import type { Item, Tag, ItemType, ItemFormData } from '../types';
 import { POPULAR_TECHNOLOGIES } from '../constants/technologies';
+import initialContent from '../data/initial-content.json';
 
 // Validation constants for security and data integrity
 const MAX_NAME_LENGTH = 255;
@@ -46,6 +47,8 @@ export async function getDb(): Promise<Database> {
             
             // Initialize system tags on first load
             await initializeSystemTags();
+            // Initialize content if DB is empty
+            await initializeDefaultContent();
         } catch (error) {
             console.error('Failed to connect to database:', error);
             throw error;
@@ -75,6 +78,28 @@ async function initializeSystemTags(): Promise<void> {
     }
 }
 
+
+// Initialize default content if database is empty
+async function initializeDefaultContent(): Promise<void> {
+    try {
+        const result = await db!.select<Array<{ count: number }>>('SELECT COUNT(*) as count FROM items');
+        if (result[0].count === 0) {
+            console.log('Database empty, seeding initial content...');
+            const now = new Date().toISOString();
+            
+            for (const item of initialContent) {
+                const id = uuidv4();
+                await db!.execute(
+                    'INSERT INTO items (id, name, content, item_type, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6)',
+                    [id, item.name, item.content, item.item_type, now, now]
+                );
+                console.log(`Seeded item: ${item.name}`);
+            }
+        }
+    } catch (error) {
+        console.error('Failed to seed initial content:', error);
+    }
+}
 
 // Items CRUD
 export async function getAllItems(): Promise<Item[]> {

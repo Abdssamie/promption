@@ -1,0 +1,22 @@
+[
+  {
+    "name": "Explain Code",
+    "item_type": "skill",
+    "content": "You are an expert software engineer. Explain the following code clearly and concisely.\n\nTarget Audience: Senior Developer\nFocus on: Key logic flow, potential side effects, and architectural patterns.\n\nCode:\n{{input}}"
+  },
+  {
+    "name": "TypeScript Best Practices",
+    "item_type": "rule",
+    "content": "# TypeScript Guidelines\n\n1. **Strict Types**: Never use `any`. Use `unknown` if type is truly ambiguous.\n2. **Explicit Returns**: Always define return types for exported functions.\n3. **Immutability**: Prefer `readonly` arrays and properties where possible.\n4. **Type vs Interface**: Use `type` for unions/primitives, `interface` for object shapes.\n5. **Null Handling**: Use Optional Chaining `?.` and Nullish Coalescing `??` instead of `&&` checks."
+  },
+  {
+    "name": "React Performance",
+    "item_type": "rule",
+    "content": "# React Performance Rules\n\n1. **Memoization**: Wrap expensive calculations in `useMemo` and callback handlers in `useCallback` only when passing to memoized children.\n2. **Stable Keys**: Never use array index as keys for lists unless the list is static.\n3. **Lazy Loading**: Use `React.lazy` and `Suspense` for route-based code splitting.\n4. **State Locality**: Keep state as close to where it's used as possible. Lift state up only when necessary."
+  },
+  {
+    "name": "Refactor Component",
+    "item_type": "workflow",
+    "content": "1. **Analyze**: Read the component code and identify responsibilities.\n2. **Extract Logic**: Move complex logic into custom hooks (`useLogic`).\n3. **Extract UI**: Break down large render methods into smaller sub-components.\n4. **Type Check**: Ensure all props and state are strictly typed.\n5. **Test**: Verify that functionality remains identical after refactoring."
+  }
+]

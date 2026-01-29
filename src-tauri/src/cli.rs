@@ -1,6 +1,7 @@
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use rusqlite::{Connection, Result as SqliteResult};
-use std::fs;
+use std::fs::{self, OpenOptions};
+use std::io::Write;
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -12,11 +13,15 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    /// Sync selected items to .agent directory in current working directory
+    /// Sync selected items to the project configuration
     Sync {
         /// Comma-separated list of item IDs to sync
         #[arg(long, value_delimiter = ',')]
         ids: Vec<String>,
+
+        /// Target tool format
+        #[arg(long, value_enum, default_value_t = ToolTarget::Antigravity)]
+        target: ToolTarget,
     },
     /// List all items in the database
     List {
@@ -24,6 +29,16 @@ pub enum Commands {
         #[arg(short, long)]
         r#type: Option<String>,
     },
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug)]
+pub enum ToolTarget {
+    Antigravity,
+    Cursor,
+    Windsurf,
+    Opencode,
+    Cline,
+    Copilot,
 }
 
 #[derive(Debug)]
@@ -48,14 +63,14 @@ fn slugify(name: &str) -> String {
         .chars()
         .map(|c| if c.is_alphanumeric() { c } else { '-' })
         .collect();
-    
+
     // Remove leading/trailing dashes and collapse multiple dashes
     let result: String = sanitized
         .split('-')
         .filter(|s| !s.is_empty())
         .collect::<Vec<_>>()
         .join("-");
-    
+
     if result.is_empty() {
         "unnamed".to_string()
     } else {
@@ -76,7 +91,7 @@ fn get_items_by_ids(conn: &Connection, ids: &[String]) -> SqliteResult<Vec<Item>
 
     let mut stmt = conn.prepare(&query)?;
     let params: Vec<&dyn rusqlite::ToSql> = ids.iter().map(|s| s as &dyn rusqlite::ToSql).collect();
-    
+
     let items = stmt.query_map(params.as_slice(), |row| {
         Ok(Item {
             id: row.get(0)?,
@@ -96,7 +111,7 @@ fn get_all_items(conn: &Connection, type_filter: Option<&str>) -> SqliteResult<V
     };
 
     let mut stmt = conn.prepare(query)?;
-    
+
     let rows: Vec<SqliteResult<Item>> = if let Some(t) = type_filter {
         stmt.query_map([t], |row| {
             Ok(Item {
@@ -105,7 +120,8 @@ fn get_all_items(conn: &Connection, type_filter: Option<&str>) -> SqliteResult<V
                 content: row.get(2)?,
                 item_type: row.get(3)?,
             })
-        })?.collect()
+        })?
+        .collect()
     } else {
         stmt.query_map([], |row| {
             Ok(Item {
@@ -114,53 +130,179 @@ fn get_all_items(conn: &Connection, type_filter: Option<&str>) -> SqliteResult<V
                 content: row.get(2)?,
                 item_type: row.get(3)?,
             })
-        })?.collect()
+        })?
+        .collect()
     };
 
     rows.into_iter().collect()
 }
 
-fn sync_items(items: &[Item]) -> std::io::Result<()> {
+fn sync_items(items: &[Item], target: ToolTarget) -> std::io::Result<()> {
+    match target {
+        ToolTarget::Antigravity => sync_antigravity(items),
+        ToolTarget::Cursor => sync_cursor(items),
+        ToolTarget::Windsurf => sync_windsurf(items),
+        ToolTarget::Opencode => sync_opencode(items),
+        ToolTarget::Cline => sync_cline(items),
+        ToolTarget::Copilot => sync_copilot(items),
+    }
+}
+
+fn sync_antigravity(items: &[Item]) -> std::io::Result<()> {
     let agent_path = PathBuf::from(".agent");
     let skills_path = agent_path.join("skills");
     let rules_path = agent_path.join("rules");
     let workflows_path = agent_path.join("workflows");
 
-    // Create directories
     fs::create_dir_all(&skills_path)?;
     fs::create_dir_all(&rules_path)?;
     fs::create_dir_all(&workflows_path)?;
 
     for item in items {
         let slug = slugify(&item.name);
-
         match item.item_type.as_str() {
             "skill" => {
-                // Skills go in their own directory with SKILL.md
                 let skill_dir = skills_path.join(&slug);
                 fs::create_dir_all(&skill_dir)?;
-                let file_path = skill_dir.join("SKILL.md");
-                fs::write(&file_path, &item.content)?;
-                println!("  + skills/{}/SKILL.md", slug);
+                fs::write(skill_dir.join("SKILL.md"), &item.content)?;
+                println!("  + .agent/skills/{}/SKILL.md", slug);
             }
             "rule" => {
-                // Rules are single .md files
-                let file_path = rules_path.join(format!("{}.md", slug));
-                fs::write(&file_path, &item.content)?;
-                println!("  + rules/{}.md", slug);
+                fs::write(rules_path.join(format!("{}.md", slug)), &item.content)?;
+                println!("  + .agent/rules/{}.md", slug);
             }
             "workflow" => {
-                // Workflows are single .md files
-                let file_path = workflows_path.join(format!("{}.md", slug));
-                fs::write(&file_path, &item.content)?;
-                println!("  + workflows/{}.md", slug);
+                fs::write(workflows_path.join(format!("{}.md", slug)), &item.content)?;
+                println!("  + .agent/workflows/{}.md", slug);
+            }
+            _ => {}
+        }
+    }
+    Ok(())
+}
+
+fn sync_cursor(items: &[Item]) -> std::io::Result<()> {
+    let rules_path = PathBuf::from(".cursor/rules");
+    fs::create_dir_all(&rules_path)?;
+
+    for item in items {
+        let slug = slugify(&item.name);
+        // Cursor uses .mdc for rules with frontmatter
+        if item.item_type == "rule" {
+            let content = format!(
+                "---\ndescription: {}\nglobs: *\n---\n\n{}",
+                item.name, item.content
+            );
+            fs::write(rules_path.join(format!("{}.mdc", slug)), content)?;
+            println!("  + .cursor/rules/{}.mdc", slug);
+        } else {
+            // Treat skills/workflows as regular markdown docs for context
+            fs::write(rules_path.join(format!("{}.md", slug)), &item.content)?;
+            println!("  + .cursor/rules/{}.md", slug);
+        }
+    }
+    Ok(())
+}
+
+fn sync_windsurf(items: &[Item]) -> std::io::Result<()> {
+    let rules_path = PathBuf::from(".windsurf/rules");
+    let skills_path = PathBuf::from(".windsurf/skills");
+    fs::create_dir_all(&rules_path)?;
+    fs::create_dir_all(&skills_path)?;
+
+    for item in items {
+        let slug = slugify(&item.name);
+        match item.item_type.as_str() {
+            "skill" => {
+                let skill_dir = skills_path.join(&slug);
+                fs::create_dir_all(&skill_dir)?;
+                let content = format!(
+                    "---\nname: {}\ndescription: {}\n---\n\n{}",
+                    slug, item.name, item.content
+                );
+                fs::write(skill_dir.join("SKILL.md"), content)?;
+                println!("  + .windsurf/skills/{}/SKILL.md", slug);
             }
             _ => {
-                eprintln!("  ! Unknown item type: {}", item.item_type);
+                // Rules and Workflows go to rules/
+                fs::write(rules_path.join(format!("{}.md", slug)), &item.content)?;
+                println!("  + .windsurf/rules/{}.md", slug);
             }
         }
     }
+    Ok(())
+}
 
+fn sync_opencode(items: &[Item]) -> std::io::Result<()> {
+    let rules_path = PathBuf::from(".opencode/rules");
+    let skills_path = PathBuf::from(".opencode/skills");
+    fs::create_dir_all(&rules_path)?;
+    fs::create_dir_all(&skills_path)?;
+
+    for item in items {
+        let slug = slugify(&item.name);
+        match item.item_type.as_str() {
+            "skill" => {
+                let skill_dir = skills_path.join(&slug);
+                fs::create_dir_all(&skill_dir)?;
+                let content = format!(
+                    "---\nname: {}\ndescription: {}\n---\n\n{}",
+                    slug, item.name, item.content
+                );
+                fs::write(skill_dir.join("SKILL.md"), content)?;
+                println!("  + .opencode/skills/{}/SKILL.md", slug);
+            }
+            _ => {
+                fs::write(rules_path.join(format!("{}.md", slug)), &item.content)?;
+                println!("  + .opencode/rules/{}.md", slug);
+            }
+        }
+    }
+    Ok(())
+}
+
+fn sync_cline(items: &[Item]) -> std::io::Result<()> {
+    let rules_path = PathBuf::from(".clinerules");
+    let skills_path = PathBuf::from(".cline/skills");
+    fs::create_dir_all(&rules_path)?;
+    fs::create_dir_all(&skills_path)?;
+
+    for item in items {
+        let slug = slugify(&item.name);
+        match item.item_type.as_str() {
+            "skill" => {
+                let skill_dir = skills_path.join(&slug);
+                fs::create_dir_all(&skill_dir)?;
+                let content = format!(
+                    "---\nname: {}\ndescription: {}\n---\n\n{}",
+                    slug, item.name, item.content
+                );
+                fs::write(skill_dir.join("SKILL.md"), content)?;
+                println!("  + .cline/skills/{}/SKILL.md", slug);
+            }
+            _ => {
+                fs::write(rules_path.join(format!("{}.md", slug)), &item.content)?;
+                println!("  + .clinerules/{}.md", slug);
+            }
+        }
+    }
+    Ok(())
+}
+
+fn sync_copilot(items: &[Item]) -> std::io::Result<()> {
+    let github_path = PathBuf::from(".github");
+    fs::create_dir_all(&github_path)?;
+    let instructions_path = github_path.join("copilot-instructions.md");
+
+    let mut file = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&instructions_path)?;
+
+    for item in items {
+        writeln!(file, "\n\n# {}\n{}", item.name, item.content)?;
+        println!("  + Appended to .github/copilot-instructions.md");
+    }
     Ok(())
 }
 
@@ -191,13 +333,17 @@ pub fn run() -> bool {
     };
 
     match command {
-        Commands::Sync { ids } => {
+        Commands::Sync { ids, target } => {
             if ids.is_empty() {
                 eprintln!("Error: No item IDs provided. Use --ids=id1,id2,id3");
                 std::process::exit(1);
             }
 
-            println!("Syncing {} item(s) to .agent/...", ids.len());
+            println!(
+                "Syncing {} item(s) to {:?} configuration...",
+                ids.len(),
+                target
+            );
 
             match get_items_by_ids(&conn, &ids) {
                 Ok(items) => {
@@ -214,9 +360,9 @@ pub fn run() -> bool {
                         );
                     }
 
-                    match sync_items(&items) {
+                    match sync_items(&items, target) {
                         Ok(()) => {
-                            println!("\nDone! {} item(s) synced to .agent/", items.len());
+                            println!("\nDone! {} item(s) synced.", items.len());
                         }
                         Err(e) => {
                             eprintln!("Error writing files: {}", e);
@@ -232,7 +378,7 @@ pub fn run() -> bool {
         }
         Commands::List { r#type } => {
             let type_filter = r#type.as_deref();
-            
+
             match get_all_items(&conn, type_filter) {
                 Ok(items) => {
                     if items.is_empty() {
@@ -242,7 +388,7 @@ pub fn run() -> bool {
 
                     println!("{:<36}  {:<10}  {}", "ID", "TYPE", "NAME");
                     println!("{}", "-".repeat(70));
-                    
+
                     for item in items {
                         println!("{:<36}  {:<10}  {}", item.id, item.item_type, item.name);
                     }
