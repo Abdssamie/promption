@@ -1,14 +1,17 @@
-import { CheckSquare, Square } from 'lucide-react';
+import { CheckSquare, Square, Keyboard } from 'lucide-react';
 import { useAppStore } from '../store/appStore';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from './ThemeToggle';
 import { ZoomControls } from './ZoomControls';
+import { KeyboardShortcutsHelp } from './KeyboardShortcutsHelp';
+import { useState } from 'react';
 
 export function Header() {
     const selectedItems = useAppStore((s) => s.selectedItems);
     const filteredItems = useAppStore((s) => s.filteredItems);
     const selectAll = useAppStore((s) => s.selectAll);
     const deselectAll = useAppStore((s) => s.deselectAll);
+    const [showShortcuts, setShowShortcuts] = useState(false);
 
     const hasSelection = selectedItems.size > 0;
     const allSelected = filteredItems.length > 0 && filteredItems.every((i) => selectedItems.has(i.id));
@@ -47,6 +50,16 @@ export function Header() {
             </div>
 
             <div className="flex items-center gap-2">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                    onClick={() => setShowShortcuts(true)}
+                    title="Keyboard Shortcuts"
+                >
+                    <Keyboard size={18} />
+                </Button>
+                <KeyboardShortcutsHelp open={showShortcuts} onOpenChange={setShowShortcuts} />
                 <ThemeToggle />
                 <ZoomControls />
             </div>
