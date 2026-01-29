@@ -37,7 +37,7 @@ promption sync --ids=abc123,def456
 ```
 
 **Supported Tools:**
-- ✅ Qoder (Antigravity IDE)
+- ✅ Antigravity IDE
 - 🔜 Cursor, Windsurf, Opencode, Claude Code (planned)
 
 ## Features
