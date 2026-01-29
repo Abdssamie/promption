@@ -1,6 +1,6 @@
 import Database from '@tauri-apps/plugin-sql';
 import { v4 as uuidv4 } from 'uuid';
-import type { Item, Tag, ItemType, ItemFormData } from '../types';
+import type { Item, Tag, ItemType, ItemFormData, Agent, AgentFormData } from '../types';
 import { POPULAR_TECHNOLOGIES } from '../constants/technologies';
 import initialContent from '../data/initial-content.json';
 
@@ -391,4 +391,176 @@ export async function searchItems(query: string, typeFilter?: ItemType, tagIds?:
     }
 
     return itemsWithTags;
+}
+
+// Agents CRUD
+function validateAgentName(name: string): void {
+    // Validate kebab-case format: lowercase letters, numbers, and hyphens only
+    const kebabCaseRegex = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+    if (!kebabCaseRegex.test(name)) {
+        throw new Error('Agent name must be in kebab-case format (lowercase letters, numbers, and hyphens only)');
+    }
+    if (name.length > MAX_NAME_LENGTH) {
+        throw new Error(`Agent name exceeds maximum length of ${MAX_NAME_LENGTH} characters`);
+    }
+}
+
+export async function getAllAgents(): Promise<Agent[]> {
+    const database = await getDb();
+
+    try {
+        const agents = await database.select<Array<{
+            id: string;
+            name: string;
+            mode: 'primary' | 'subagent';
+            model: string | null;
+            prompt_content: string | null;
+            tools_config: string | null;
+            permissions_config: string | null;
+            created_at: string;
+            updated_at: string;
+        }>>('SELECT * FROM agents ORDER BY updated_at DESC');
+
+        return agents.map(agent => ({
+            ...agent,
+            model: agent.model || undefined,
+            prompt_content: agent.prompt_content || undefined,
+            tools_config: agent.tools_config ? JSON.parse(agent.tools_config) : undefined,
+            permissions_config: agent.permissions_config ? JSON.parse(agent.permissions_config) : undefined,
+        }));
+    } catch (error) {
+        console.error('Failed to get all agents:', error);
+        throw error;
+    }
+}
+
+export async function getAgentById(id: string): Promise<Agent | null> {
+    const database = await getDb();
+
+    try {
+        const agents = await database.select<Array<{
+            id: string;
+            name: string;
+            mode: 'primary' | 'subagent';
+            model: string | null;
+            prompt_content: string | null;
+            tools_config: string | null;
+            permissions_config: string | null;
+            created_at: string;
+            updated_at: string;
+        }>>('SELECT * FROM agents WHERE id = $1', [id]);
+
+        if (agents.length === 0) return null;
+
+        const agent = agents[0];
+        return {
+            ...agent,
+            model: agent.model || undefined,
+            prompt_content: agent.prompt_content || undefined,
+            tools_config: agent.tools_config ? JSON.parse(agent.tools_config) : undefined,
+            permissions_config: agent.permissions_config ? JSON.parse(agent.permissions_config) : undefined,
+        };
+    } catch (error) {
+        console.error('Failed to get agent by id:', error);
+        throw error;
+    }
+}
+
+export async function createAgent(data: AgentFormData): Promise<Agent> {
+    const database = await getDb();
+    const id = uuidv4();
+    const now = new Date().toISOString();
+
+    // Validate agent name
+    validateAgentName(data.name);
+
+    try {
+        const toolsConfigStr = data.tools_config ? JSON.stringify(data.tools_config) : null;
+        const permissionsConfigStr = data.permissions_config ? JSON.stringify(data.permissions_config) : null;
+
+        await database.execute(
+            'INSERT INTO agents (id, name, mode, model, prompt_content, tools_config, permissions_config, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
+            [id, data.name, data.mode, data.model || null, data.prompt_content || null, toolsConfigStr, permissionsConfigStr, now, now]
+        );
+        console.log(`Agent created: ${id} (${data.name})`);
+
+        const agent = await getAgentById(id);
+        if (!agent) {
+            throw new Error('Failed to retrieve created agent');
+        }
+        return agent;
+    } catch (error) {
+        console.error('Failed to create agent:', error);
+        throw error;
+    }
+}
+
+export async function updateAgent(id: string, data: Partial<AgentFormData>): Promise<Agent> {
+    const database = await getDb();
+    const now = new Date().toISOString();
+
+    // Validate agent name if being updated
+    if (data.name !== undefined) {
+        validateAgentName(data.name);
+    }
+
+    try {
+        const updates: string[] = [];
+        const params: any[] = [];
+        let paramIndex = 1;
+
+        if (data.name !== undefined) {
+            updates.push(`name = $${paramIndex++}`);
+            params.push(data.name);
+        }
+        if (data.mode !== undefined) {
+            updates.push(`mode = $${paramIndex++}`);
+            params.push(data.mode);
+        }
+        if (data.model !== undefined) {
+            updates.push(`model = $${paramIndex++}`);
+            params.push(data.model || null);
+        }
+        if (data.prompt_content !== undefined) {
+            updates.push(`prompt_content = $${paramIndex++}`);
+            params.push(data.prompt_content || null);
+        }
+        if (data.tools_config !== undefined) {
+            updates.push(`tools_config = $${paramIndex++}`);
+            params.push(data.tools_config ? JSON.stringify(data.tools_config) : null);
+        }
+        if (data.permissions_config !== undefined) {
+            updates.push(`permissions_config = $${paramIndex++}`);
+            params.push(data.permissions_config ? JSON.stringify(data.permissions_config) : null);
+        }
+
+        updates.push(`updated_at = $${paramIndex++}`);
+        params.push(now);
+        params.push(id);
+
+        const sql = `UPDATE agents SET ${updates.join(', ')} WHERE id = $${paramIndex}`;
+        await database.execute(sql, params);
+        console.log(`Agent updated: ${id}`);
+
+        const agent = await getAgentById(id);
+        if (!agent) {
+            throw new Error('Failed to retrieve updated agent');
+        }
+        return agent;
+    } catch (error) {
+        console.error('Failed to update agent:', error);
+        throw error;
+    }
+}
+
+export async function deleteAgent(id: string): Promise<void> {
+    const database = await getDb();
+
+    try {
+        await database.execute('DELETE FROM agents WHERE id = $1', [id]);
+        console.log(`Agent deleted: ${id}`);
+    } catch (error) {
+        console.error('Failed to delete agent:', error);
+        throw error;
+    }
 }

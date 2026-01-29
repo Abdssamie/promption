@@ -1,5 +1,6 @@
 use clap::{Parser, Subcommand, ValueEnum};
 use rusqlite::{Connection, Result as SqliteResult};
+use serde_json::{json, Value};
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::PathBuf;
@@ -29,6 +30,14 @@ pub enum Commands {
         #[arg(short, long)]
         r#type: Option<String>,
     },
+    /// Sync agent configurations to opencode.json
+    SyncAgents {
+        /// Comma-separated list of agent IDs to sync
+        #[arg(long, value_delimiter = ',')]
+        ids: Vec<String>,
+    },
+    /// List all agents
+    ListAgents,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug)]
@@ -47,6 +56,17 @@ struct Item {
     name: String,
     content: String,
     item_type: String,
+}
+
+#[derive(Debug)]
+struct Agent {
+    id: String,
+    name: String,
+    mode: String,
+    model: Option<String>,
+    prompt_content: Option<String>,
+    tools_config: Option<String>,
+    permissions_config: Option<String>,
 }
 
 fn get_db_path() -> PathBuf {
@@ -399,7 +419,189 @@ pub fn run() -> bool {
                 }
             }
         }
+        Commands::SyncAgents { ids } => {
+            if ids.is_empty() {
+                eprintln!("Error: No agent IDs provided. Use --ids=id1,id2,id3");
+                std::process::exit(1);
+            }
+
+            println!("Syncing {} agent(s) to opencode.json...", ids.len());
+
+            match get_agents_by_ids(&conn, &ids) {
+                Ok(agents) => {
+                    if agents.is_empty() {
+                        eprintln!("Warning: No agents found with the provided IDs");
+                        std::process::exit(1);
+                    }
+
+                    if agents.len() != ids.len() {
+                        eprintln!(
+                            "Warning: Found {} agents, expected {} (some IDs may be invalid)",
+                            agents.len(),
+                            ids.len()
+                        );
+                    }
+
+                    match sync_agents_to_opencode(&agents) {
+                        Ok(()) => {
+                            println!("\nDone! {} agent(s) synced to opencode.json.", agents.len());
+                        }
+                        Err(e) => {
+                            eprintln!("Error writing opencode.json: {}", e);
+                            std::process::exit(1);
+                        }
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Database error: {}", e);
+                    std::process::exit(1);
+                }
+            }
+        }
+        Commands::ListAgents => {
+            match get_all_agents(&conn) {
+                Ok(agents) => {
+                    if agents.is_empty() {
+                        println!("No agents found.");
+                        return true;
+                    }
+
+                    println!("{:<36}  {:<10}  {}", "ID", "MODE", "NAME");
+                    println!("{}", "-".repeat(70));
+
+                    for agent in agents {
+                        println!("{:<36}  {:<10}  {}", agent.id, agent.mode, agent.name);
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Database error: {}", e);
+                    std::process::exit(1);
+                }
+            }
+        }
     }
 
     true
+}
+
+fn get_agents_by_ids(conn: &Connection, ids: &[String]) -> SqliteResult<Vec<Agent>> {
+    if ids.is_empty() {
+        return Ok(vec![]);
+    }
+
+    let placeholders: Vec<String> = ids.iter().map(|_| "?".to_string()).collect();
+    let query = format!(
+        "SELECT id, name, mode, model, prompt_content, tools_config, permissions_config FROM agents WHERE id IN ({})",
+        placeholders.join(", ")
+    );
+
+    let mut stmt = conn.prepare(&query)?;
+    let params: Vec<&dyn rusqlite::ToSql> = ids.iter().map(|s| s as &dyn rusqlite::ToSql).collect();
+
+    let agents = stmt.query_map(params.as_slice(), |row| {
+        Ok(Agent {
+            id: row.get(0)?,
+            name: row.get(1)?,
+            mode: row.get(2)?,
+            model: row.get(3)?,
+            prompt_content: row.get(4)?,
+            tools_config: row.get(5)?,
+            permissions_config: row.get(6)?,
+        })
+    })?;
+
+    agents.collect()
+}
+
+fn get_all_agents(conn: &Connection) -> SqliteResult<Vec<Agent>> {
+    let query = "SELECT id, name, mode, model, prompt_content, tools_config, permissions_config FROM agents ORDER BY updated_at DESC";
+    let mut stmt = conn.prepare(query)?;
+
+    let agents = stmt.query_map([], |row| {
+        Ok(Agent {
+            id: row.get(0)?,
+            name: row.get(1)?,
+            mode: row.get(2)?,
+            model: row.get(3)?,
+            prompt_content: row.get(4)?,
+            tools_config: row.get(5)?,
+            permissions_config: row.get(6)?,
+        })
+    })?;
+
+    agents.collect()
+}
+
+fn sync_agents_to_opencode(agents: &[Agent]) -> std::io::Result<()> {
+    let config_path = PathBuf::from("opencode.json");
+
+    // Read existing config or create new
+    let mut config: Value = if config_path.exists() {
+        let content = fs::read_to_string(&config_path)?;
+        serde_json::from_str(&content).unwrap_or_else(|_| {
+            json!({
+                "$schema": "https://opencode.ai/config.json"
+            })
+        })
+    } else {
+        json!({
+            "$schema": "https://opencode.ai/config.json"
+        })
+    };
+
+    // Ensure agent object exists
+    if !config.is_object() {
+        config = json!({
+            "$schema": "https://opencode.ai/config.json",
+            "agent": {}
+        });
+    }
+    if config.get("agent").is_none() {
+        config["agent"] = json!({});
+    }
+
+    // Add/update each agent
+    for agent in agents {
+        let mut agent_config = json!({
+            "mode": agent.mode
+        });
+
+        if let Some(model) = &agent.model {
+            agent_config["model"] = json!(model);
+        }
+
+        if let Some(prompt) = &agent.prompt_content {
+            // Save prompt to file
+            let prompt_path = PathBuf::from(format!(".opencode/prompts/{}.txt", agent.name));
+            if let Some(parent) = prompt_path.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            fs::write(&prompt_path, prompt)?;
+            agent_config["prompt"] = json!(format!("{{file:{}}}", prompt_path.display()));
+            println!("  + Saved prompt to {}", prompt_path.display());
+        }
+
+        if let Some(tools_json) = &agent.tools_config {
+            if let Ok(tools) = serde_json::from_str::<Value>(tools_json) {
+                agent_config["tools"] = tools;
+            }
+        }
+
+        if let Some(perms_json) = &agent.permissions_config {
+            if let Ok(perms) = serde_json::from_str::<Value>(perms_json) {
+                agent_config["permissions"] = perms;
+            }
+        }
+
+        config["agent"][&agent.name] = agent_config;
+        println!("  + Added agent config: {}", agent.name);
+    }
+
+    // Write back to opencode.json
+    let pretty_json = serde_json::to_string_pretty(&config)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+    fs::write(&config_path, pretty_json)?;
+    println!("  + Updated opencode.json");
+
+    Ok(())
 }

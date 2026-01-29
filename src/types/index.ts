@@ -33,3 +33,26 @@ export interface ExportItem {
 
 export type ViewMode = 'list' | 'grid';
 export type EditMode = 'view' | 'edit';
+
+export type AgentMode = 'primary' | 'subagent';
+
+export interface Agent {
+    id: string;
+    name: string;
+    mode: AgentMode;
+    model?: string;
+    prompt_content?: string;
+    tools_config?: Record<string, boolean | string>;
+    permissions_config?: Record<string, 'ask' | 'allow' | 'deny'>;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface AgentFormData {
+    name: string;
+    mode: AgentMode;
+    model?: string;
+    prompt_content?: string;
+    tools_config?: Record<string, boolean | string>;
+    permissions_config?: Record<string, 'ask' | 'allow' | 'deny'>;
+}

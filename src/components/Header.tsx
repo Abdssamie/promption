@@ -1,9 +1,10 @@
-import { CheckSquare, Square, Keyboard } from 'lucide-react';
+import { CheckSquare, Square, Keyboard, Package, Bot } from 'lucide-react';
 import { useAppStore } from '../store/appStore';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from './ThemeToggle';
 import { ZoomControls } from './ZoomControls';
 import { KeyboardShortcutsHelp } from './KeyboardShortcutsHelp';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useState, useEffect } from 'react';
 
 export function Header() {
@@ -11,6 +12,8 @@ export function Header() {
     const filteredItems = useAppStore((s) => s.filteredItems);
     const selectAll = useAppStore((s) => s.selectAll);
     const deselectAll = useAppStore((s) => s.deselectAll);
+    const viewMode = useAppStore((s) => s.viewMode);
+    const setViewMode = useAppStore((s) => s.setViewMode);
     const [showShortcuts, setShowShortcuts] = useState(false);
 
     useEffect(() => {
@@ -46,23 +49,39 @@ export function Header() {
                     </h1>
                 </div>
 
-                {/* Selection controls */}
-                <div className="flex items-center gap-2">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={allSelected ? deselectAll : selectAll}
-                        className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-                    >
-                        {allSelected ? <CheckSquare size={13} /> : <Square size={13} />}
-                        {allSelected ? 'Deselect All' : 'Select All'}
-                    </Button>
-                    {hasSelection && (
-                        <span className="text-xs text-muted-foreground">
-                            {selectedItems.size} selected
-                        </span>
-                    )}
-                </div>
+                {/* View Mode Toggle */}
+                <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as 'items' | 'agents')}>
+                    <TabsList>
+                        <TabsTrigger value="items" className="gap-1.5">
+                            <Package size={14} />
+                            Items
+                        </TabsTrigger>
+                        <TabsTrigger value="agents" className="gap-1.5">
+                            <Bot size={14} />
+                            Agents
+                        </TabsTrigger>
+                    </TabsList>
+                </Tabs>
+
+                {/* Selection controls - only show for items view */}
+                {viewMode === 'items' && (
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={allSelected ? deselectAll : selectAll}
+                            className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                        >
+                            {allSelected ? <CheckSquare size={13} /> : <Square size={13} />}
+                            {allSelected ? 'Deselect All' : 'Select All'}
+                        </Button>
+                        {hasSelection && (
+                            <span className="text-xs text-muted-foreground">
+                                {selectedItems.size} selected
+                            </span>
+                        )}
+                    </div>
+                )}
             </div>
 
             <div className="flex items-center gap-2">

@@ -1,11 +1,12 @@
 import { create } from 'zustand';
-import type { Item, Tag, ItemType, ItemFormData } from '../types';
+import type { Item, Tag, ItemType, ItemFormData, Agent, AgentFormData } from '../types';
 import * as db from '../services/database';
 
 interface AppState {
     // Data
     items: Item[];
     tags: Tag[];
+    agents: Agent[];
 
     // Selection
     selectedItems: Set<string>;
@@ -18,8 +19,10 @@ interface AppState {
     // UI State
     isLoading: boolean;
     editingItem: Item | null;
+    editingAgent: Agent | null;
     isCreating: boolean;
     createType: ItemType;
+    viewMode: 'items' | 'agents';
 }
 
 interface AppActions {
@@ -30,6 +33,11 @@ interface AppActions {
     createItem: (data: ItemFormData) => Promise<Item>;
     updateItem: (id: string, data: Partial<ItemFormData>) => Promise<Item>;
     deleteItem: (id: string) => Promise<void>;
+
+    // Agents CRUD
+    createAgent: (data: AgentFormData) => Promise<Agent>;
+    updateAgent: (id: string, data: Partial<AgentFormData>) => Promise<Agent>;
+    deleteAgent: (id: string) => Promise<void>;
 
     // Tags CRUD
     createTag: (name: string, color: string) => Promise<Tag>;
@@ -48,7 +56,9 @@ interface AppActions {
 
     // UI
     setEditing: (item: Item | null) => void;
+    setEditingAgent: (agent: Agent | null) => void;
     setCreating: (isCreating: boolean, type?: ItemType) => void;
+    setViewMode: (mode: 'items' | 'agents') => void;
 
     // Computed (kept for backward compatibility but deprecated)
     getFilteredItems: () => Item[];
@@ -91,24 +101,27 @@ export const useAppStore = create<AppState & AppActions & AppComputed>((set, get
     // Initial state
     items: [],
     tags: [],
+    agents: [],
     selectedItems: new Set(),
     searchQuery: '',
     typeFilter: null,
     tagFilter: [],
     isLoading: true,
     editingItem: null,
+    editingAgent: null,
     isCreating: false,
     createType: 'skill',
+    viewMode: 'items',
     filteredItems: [],
 
     // Data loading
     loadData: async () => {
         set({ isLoading: true });
         try {
-            const [items, tags] = await Promise.all([db.getAllItems(), db.getAllTags()]);
+            const [items, tags, agents] = await Promise.all([db.getAllItems(), db.getAllTags(), db.getAllAgents()]);
             const state = get();
             const filteredItems = computeFilteredItems({ ...state, items, tags });
-            set({ items, tags, filteredItems, isLoading: false });
+            set({ items, tags, agents, filteredItems, isLoading: false });
         } catch (error) {
             console.error('Failed to load data:', error);
             set({ isLoading: false });
@@ -172,6 +185,52 @@ export const useAppStore = create<AppState & AppActions & AppComputed>((set, get
             console.log('Item deleted successfully:', id);
         } catch (error) {
             console.error('Failed to delete item:', error);
+            throw error;
+        }
+    },
+
+    // Agents CRUD
+    createAgent: async (data) => {
+        try {
+            const agent = await db.createAgent(data);
+            set((state) => ({
+                agents: [agent, ...state.agents],
+            }));
+            console.log('Agent created successfully:', agent.id);
+            return agent;
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Failed to create agent';
+            console.error('Failed to create agent:', error);
+            throw new Error(message);
+        }
+    },
+
+    updateAgent: async (id, data) => {
+        try {
+            const agent = await db.updateAgent(id, data);
+            set((state) => ({
+                agents: state.agents.map((a) => (a.id === id ? agent : a)),
+                editingAgent: state.editingAgent?.id === id ? agent : state.editingAgent,
+            }));
+            console.log('Agent updated successfully:', agent.id);
+            return agent;
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Failed to update agent';
+            console.error('Failed to update agent:', error);
+            throw new Error(message);
+        }
+    },
+
+    deleteAgent: async (id) => {
+        try {
+            await db.deleteAgent(id);
+            set((state) => ({
+                agents: state.agents.filter((a) => a.id !== id),
+                editingAgent: state.editingAgent?.id === id ? null : state.editingAgent,
+            }));
+            console.log('Agent deleted successfully:', id);
+        } catch (error) {
+            console.error('Failed to delete agent:', error);
             throw error;
         }
     },
@@ -267,11 +326,13 @@ export const useAppStore = create<AppState & AppActions & AppComputed>((set, get
 
     // UI
     setEditing: (item) => set({ editingItem: item }),
+    setEditingAgent: (agent) => set({ editingAgent: agent }),
     setCreating: (isCreating, type) =>
         set((state) => ({
             isCreating,
             createType: type ?? state.createType,
         })),
+    setViewMode: (mode) => set({ viewMode: mode }),
 
     // Computed (kept for backward compatibility)
     getFilteredItems: () => {

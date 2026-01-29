@@ -45,6 +45,26 @@ pub fn run() {
             "#,
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 3,
+            description: "Create agents table",
+            sql: r#"
+                CREATE TABLE IF NOT EXISTS agents (
+                    id TEXT PRIMARY KEY NOT NULL,
+                    name TEXT NOT NULL UNIQUE,
+                    mode TEXT NOT NULL CHECK(mode IN ('primary', 'subagent')) DEFAULT 'subagent',
+                    model TEXT,
+                    prompt_content TEXT,
+                    tools_config TEXT,
+                    permissions_config TEXT,
+                    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_agents_name ON agents(name);
+            "#,
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()
