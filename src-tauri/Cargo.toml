@@ -1,6 +1,6 @@
 [package]
 name = "promption"
-version = "0.2.0"
+version = "0.2.1"
 description = "AI Prompt, Skills & Rules Manager"
 authors = ["you"]
 edition = "2021"
