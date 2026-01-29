@@ -11,6 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "validate:version": "node scripts/validate-version.cjs",
+    "check": "vitest run --coverage && node scripts/validate-version.cjs && tsc --noEmit",
     "version": "node -e \"const fs=require('fs');const v=process.env.npm_package_version;const tc=JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json','utf8'));tc.version=v;fs.writeFileSync('src-tauri/tauri.conf.json',JSON.stringify(tc,null,2)+'\\n');const cargo=fs.readFileSync('src-tauri/Cargo.toml','utf8').replace(/^version = \\\"[^\\\"]+\\\"/m,'version = \\\"'+v+'\\\"');fs.writeFileSync('src-tauri/Cargo.toml',cargo);console.log('✅ Synced version to',v);\" && git add src-tauri/tauri.conf.json src-tauri/Cargo.toml",
     "release:patch": "npm version patch && git push --follow-tags",
     "release:minor": "npm version minor && git push --follow-tags",
