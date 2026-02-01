@@ -31,6 +31,12 @@ export interface ExportItem {
     item_type: ItemType;
 }
 
+export interface ExportAgent {
+    id: string;
+    name: string;
+    mode: AgentMode;
+}
+
 export type ViewMode = 'list' | 'grid';
 export type EditMode = 'view' | 'edit';
 

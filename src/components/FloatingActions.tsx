@@ -13,19 +13,33 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { TAG_COLORS } from '../lib/utils';
+import { AgentExport } from './AgentExport';
 
 export function FloatingActions() {
     const [copied, setCopied] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const [showAgentExport, setShowAgentExport] = useState(false);
     const messageTimeoutRef = useRef<number | null>(null);
     const copiedTimeoutRef = useRef<number | null>(null);
 
+    const viewMode = useAppStore((s) => s.viewMode);
     const selectedItems = useAppStore((s) => s.selectedItems);
+    const selectedAgents = useAppStore((s) => s.selectedAgents);
     const getSelectedItemsData = useAppStore((s) => s.getSelectedItemsData);
+    const getSelectedAgentsData = useAppStore((s) => s.getSelectedAgentsData);
     const setCreating = useAppStore((s) => s.setCreating);
 
     // Cleanup timeouts on unmount
     useEffect(() => {
+        // Listen for export agents event from keyboard shortcut
+        const handleExportAgentsEvent = () => {
+            if (selectedAgents.size > 0) {
+                setShowAgentExport(true);
+            }
+        };
+        
+        window.addEventListener('exportAgents', handleExportAgentsEvent);
+        
         return () => {
             if (messageTimeoutRef.current !== null) {
                 clearTimeout(messageTimeoutRef.current);
@@ -33,57 +47,86 @@ export function FloatingActions() {
             if (copiedTimeoutRef.current !== null) {
                 clearTimeout(copiedTimeoutRef.current);
             }
+            window.removeEventListener('exportAgents', handleExportAgentsEvent);
         };
-    }, []);
+    }, [selectedAgents]);
 
     const handleCopyCommand = async () => {
-        const itemsToExport = getSelectedItemsData();
-        if (itemsToExport.length === 0) {
-            setMessage({ type: 'error', text: 'Select items first' });
+        if (viewMode === 'agents') {
+            // Show export dialog for agents
+            const agentsToExport = getSelectedAgentsData();
+            if (agentsToExport.length === 0) {
+                setMessage({ type: 'error', text: 'Select agents first' });
+                if (messageTimeoutRef.current !== null) {
+                    clearTimeout(messageTimeoutRef.current);
+                }
+                messageTimeoutRef.current = window.setTimeout(() => {
+                    setMessage(null);
+                    messageTimeoutRef.current = null;
+                }, 3000);
+                return;
+            }
+            setShowAgentExport(true);
+        } else {
+            // Original items export logic
+            const itemsToExport = getSelectedItemsData();
+            if (itemsToExport.length === 0) {
+                setMessage({ type: 'error', text: 'Select prompts first' });
+                if (messageTimeoutRef.current !== null) {
+                    clearTimeout(messageTimeoutRef.current);
+                }
+                messageTimeoutRef.current = window.setTimeout(() => {
+                    setMessage(null);
+                    messageTimeoutRef.current = null;
+                }, 3000);
+                return;
+            }
+
+            const ids = itemsToExport.map((item) => item.id).join(',');
+            const command = `promption sync --ids=${ids}`;
+            
+            try {
+                await navigator.clipboard.writeText(command);
+                setCopied(true);
+                setMessage({ type: 'success', text: 'Command copied! Run in your project directory' });
+                
+                if (copiedTimeoutRef.current !== null) {
+                    clearTimeout(copiedTimeoutRef.current);
+                }
+                copiedTimeoutRef.current = window.setTimeout(() => {
+                    setCopied(false);
+                    copiedTimeoutRef.current = null;
+                }, 2000);
+            } catch {
+                setMessage({ type: 'error', text: 'Failed to copy command' });
+            }
+            
             if (messageTimeoutRef.current !== null) {
                 clearTimeout(messageTimeoutRef.current);
             }
             messageTimeoutRef.current = window.setTimeout(() => {
                 setMessage(null);
                 messageTimeoutRef.current = null;
-            }, 3000);
-            return;
+            }, 4000);
         }
-
-        const ids = itemsToExport.map((item) => item.id).join(',');
-        const command = `promption sync --ids=${ids}`;
-        
-        try {
-            await navigator.clipboard.writeText(command);
-            setCopied(true);
-            setMessage({ type: 'success', text: 'Command copied! Run in your project directory' });
-            
-            if (copiedTimeoutRef.current !== null) {
-                clearTimeout(copiedTimeoutRef.current);
-            }
-            copiedTimeoutRef.current = window.setTimeout(() => {
-                setCopied(false);
-                copiedTimeoutRef.current = null;
-            }, 2000);
-        } catch {
-            setMessage({ type: 'error', text: 'Failed to copy command' });
-        }
-        
-        if (messageTimeoutRef.current !== null) {
-            clearTimeout(messageTimeoutRef.current);
-        }
-        messageTimeoutRef.current = window.setTimeout(() => {
-            setMessage(null);
-            messageTimeoutRef.current = null;
-        }, 4000);
     };
 
     const handleCreateNew = (type: ItemType) => {
         setCreating(true, type);
     };
 
+    const hasSelection = viewMode === 'agents' ? selectedAgents.size > 0 : selectedItems.size > 0;
+    const isItemsView = viewMode === 'items';
+
     return (
         <>
+            {/* Agent Export Dialog */}
+            {showAgentExport && (
+                <AgentExport
+                    agents={getSelectedAgentsData()}
+                    onClose={() => setShowAgentExport(false)}
+                />
+            )}
             {/* Message toast */}
             {message && (
                 <div className="fixed bottom-24 right-6 z-50 animate-fadeIn">
@@ -119,49 +162,53 @@ export function FloatingActions() {
                         </DialogContent>
                     </Dialog>
 
-                    {/* Copy Command */}
+                    {/* Export/Copy Command */}
                     <Button
                         variant="ghost"
                         size="sm"
                         onClick={handleCopyCommand}
-                        disabled={selectedItems.size === 0}
+                        disabled={!hasSelection}
                         className="gap-2"
                     >
                         {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
-                        {copied ? 'Copied!' : 'Copy Cmd'}
+                        {viewMode === 'agents' ? 'Export' : (copied ? 'Copied!' : 'Copy Cmd')}
                     </Button>
 
-                    {/* Divider */}
-                    <div className="h-6 w-px bg-border" />
+                    {/* Divider - only show for items view */}
+                    {isItemsView && <div className="h-6 w-px bg-border" />}
 
-                    {/* Create buttons */}
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleCreateNew('skill')}
-                        className="gap-2"
-                    >
-                        <Plus size={16} />
-                        Skill
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleCreateNew('rule')}
-                        className="gap-2"
-                    >
-                        <Plus size={16} />
-                        Rule
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleCreateNew('workflow')}
-                        className="gap-2"
-                    >
-                        <Plus size={16} />
-                        Workflow
-                    </Button>
+                    {/* Create buttons - only show for items view */}
+                    {isItemsView && (
+                        <>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleCreateNew('skill')}
+                                className="gap-2"
+                            >
+                                <Plus size={16} />
+                                Skill
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleCreateNew('rule')}
+                                className="gap-2"
+                            >
+                                <Plus size={16} />
+                                Rule
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleCreateNew('workflow')}
+                                className="gap-2"
+                            >
+                                <Plus size={16} />
+                                Workflow
+                            </Button>
+                        </>
+                    )}
                 </div>
             </div>
         </>

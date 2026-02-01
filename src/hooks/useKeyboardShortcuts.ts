@@ -10,21 +10,29 @@ import type { ItemType } from '../types';
  * - Ctrl/Cmd + Shift + S: Create skill
  * - Ctrl/Cmd + Shift + R: Create rule
  * - Ctrl/Cmd + Shift + W: Create workflow
- * - Ctrl/Cmd + A: Select all visible items
+ * - Ctrl/Cmd + A: Select all (items or agents based on view)
  * - Ctrl/Cmd + D: Deselect all
  * - Ctrl/Cmd + C: Copy command (if items selected)
+ * - Ctrl/Cmd + E: Export agents (if agents selected)
  * - Ctrl/Cmd + F: Focus search bar
  * - Escape: Close dialog / Deselect all
  */
 export function useKeyboardShortcuts() {
+    const viewMode = useAppStore((s) => s.viewMode);
     const setCreating = useAppStore((s) => s.setCreating);
     const selectAll = useAppStore((s) => s.selectAll);
     const deselectAll = useAppStore((s) => s.deselectAll);
+    const selectAllAgents = useAppStore((s) => s.selectAllAgents);
+    const deselectAllAgents = useAppStore((s) => s.deselectAllAgents);
     const selectedItems = useAppStore((s) => s.selectedItems);
+    const selectedAgents = useAppStore((s) => s.selectedAgents);
     const getSelectedItemsData = useAppStore((s) => s.getSelectedItemsData);
+    const getSelectedAgentsData = useAppStore((s) => s.getSelectedAgentsData);
     const editingItem = useAppStore((s) => s.editingItem);
+    const editingAgent = useAppStore((s) => s.editingAgent);
     const isCreating = useAppStore((s) => s.isCreating);
     const setEditing = useAppStore((s) => s.setEditing);
+    const setEditingAgent = useAppStore((s) => s.setEditingAgent);
 
     const handleCopyCommand = useCallback(async () => {
         const itemsToExport = getSelectedItemsData();
@@ -40,6 +48,12 @@ export function useKeyboardShortcuts() {
             console.error('Failed to copy command:', error);
         }
     }, [getSelectedItemsData]);
+
+    const handleExportAgents = useCallback(() => {
+        // Trigger the floating actions export handler by dispatching a custom event
+        const event = new CustomEvent('exportAgents');
+        window.dispatchEvent(event);
+    }, []);
 
     const handleCreateItem = useCallback((type: ItemType) => {
         setCreating(true, type);
@@ -63,9 +77,10 @@ export function useKeyboardShortcuts() {
         if (isInputActive) {
             // Escape should still work in inputs to close dialogs
             if (e.key === 'Escape') {
-                if (editingItem || isCreating) {
+                if (editingItem || editingAgent || isCreating) {
                     e.preventDefault();
                     setEditing(null);
+                    setEditingAgent(null);
                     setCreating(false);
                 }
             }
@@ -75,62 +90,82 @@ export function useKeyboardShortcuts() {
         // Escape - close dialogs or deselect all
         if (e.key === 'Escape') {
             e.preventDefault();
-            if (editingItem || isCreating) {
+            if (editingItem || editingAgent || isCreating) {
                 setEditing(null);
+                setEditingAgent(null);
                 setCreating(false);
+            } else if (viewMode === 'agents' && selectedAgents.size > 0) {
+                deselectAllAgents();
             } else if (selectedItems.size > 0) {
                 deselectAll();
             }
             return;
         }
 
-        // Ctrl/Cmd + N - New item (default: skill)
-        if (isMod && !isShift && e.key.toLowerCase() === 'n') {
+        // Ctrl/Cmd + N - New item (default: skill) - only in items view
+        if (isMod && !isShift && e.key.toLowerCase() === 'n' && viewMode === 'items') {
             e.preventDefault();
             handleCreateItem('skill');
             return;
         }
 
-        // Ctrl/Cmd + Shift + S - Create skill
-        if (isMod && isShift && e.key.toLowerCase() === 's') {
+        // Ctrl/Cmd + Shift + S - Create skill - only in items view
+        if (isMod && isShift && e.key.toLowerCase() === 's' && viewMode === 'items') {
             e.preventDefault();
             handleCreateItem('skill');
             return;
         }
 
-        // Ctrl/Cmd + Shift + R - Create rule
-        if (isMod && isShift && e.key.toLowerCase() === 'r') {
+        // Ctrl/Cmd + Shift + R - Create rule - only in items view
+        if (isMod && isShift && e.key.toLowerCase() === 'r' && viewMode === 'items') {
             e.preventDefault();
             handleCreateItem('rule');
             return;
         }
 
-        // Ctrl/Cmd + Shift + W - Create workflow
-        if (isMod && isShift && e.key.toLowerCase() === 'w') {
+        // Ctrl/Cmd + Shift + W - Create workflow - only in items view
+        if (isMod && isShift && e.key.toLowerCase() === 'w' && viewMode === 'items') {
             e.preventDefault();
             handleCreateItem('workflow');
             return;
         }
 
-        // Ctrl/Cmd + A - Select all
+        // Ctrl/Cmd + A - Select all (respects current view)
         if (isMod && !isShift && e.key.toLowerCase() === 'a') {
             e.preventDefault();
-            selectAll();
+            if (viewMode === 'agents') {
+                selectAllAgents();
+            } else {
+                selectAll();
+            }
             return;
         }
 
-        // Ctrl/Cmd + D - Deselect all
+        // Ctrl/Cmd + D - Deselect all (respects current view)
         if (isMod && !isShift && e.key.toLowerCase() === 'd') {
             e.preventDefault();
-            deselectAll();
+            if (viewMode === 'agents') {
+                deselectAllAgents();
+            } else {
+                deselectAll();
+            }
             return;
         }
 
-        // Ctrl/Cmd + C - Copy command (if items selected, otherwise let browser handle)
-        if (isMod && !isShift && e.key.toLowerCase() === 'c') {
+        // Ctrl/Cmd + C - Copy command (if items selected in items view)
+        if (isMod && !isShift && e.key.toLowerCase() === 'c' && viewMode === 'items') {
             if (selectedItems.size > 0) {
                 e.preventDefault();
                 handleCopyCommand();
+            }
+            return;
+        }
+
+        // Ctrl/Cmd + E - Export agents (if agents selected in agents view)
+        if (isMod && !isShift && e.key.toLowerCase() === 'e' && viewMode === 'agents') {
+            if (selectedAgents.size > 0) {
+                e.preventDefault();
+                handleExportAgents();
             }
             return;
         }
@@ -142,15 +177,22 @@ export function useKeyboardShortcuts() {
             return;
         }
     }, [
+        viewMode,
         editingItem,
+        editingAgent,
         isCreating,
         selectedItems,
+        selectedAgents,
         setEditing,
+        setEditingAgent,
         setCreating,
         deselectAll,
+        deselectAllAgents,
         selectAll,
+        selectAllAgents,
         handleCreateItem,
         handleCopyCommand,
+        handleExportAgents,
         focusSearchBar,
     ]);
 

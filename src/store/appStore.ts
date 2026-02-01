@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Item, Tag, ItemType, ItemFormData, Agent, AgentFormData } from '../types';
+import type { Item, Tag, ItemType, ItemFormData, Agent, AgentFormData, ExportAgent } from '../types';
 import * as db from '../services/database';
 
 interface AppState {
@@ -10,6 +10,7 @@ interface AppState {
 
     // Selection
     selectedItems: Set<string>;
+    selectedAgents: Set<string>;
 
     // Filters
     searchQuery: string;
@@ -48,6 +49,9 @@ interface AppActions {
     toggleSelect: (id: string) => void;
     selectAll: () => void;
     deselectAll: () => void;
+    toggleSelectAgent: (id: string) => void;
+    selectAllAgents: () => void;
+    deselectAllAgents: () => void;
 
     // Filters
     setSearch: (query: string) => void;
@@ -63,6 +67,7 @@ interface AppActions {
     // Computed (kept for backward compatibility but deprecated)
     getFilteredItems: () => Item[];
     getSelectedItemsData: () => Item[];
+    getSelectedAgentsData: () => Agent[];
 }
 
 interface AppComputed {
@@ -103,6 +108,7 @@ export const useAppStore = create<AppState & AppActions & AppComputed>((set, get
     tags: [],
     agents: [],
     selectedItems: new Set(),
+    selectedAgents: new Set(),
     searchQuery: '',
     typeFilter: null,
     tagFilter: [],
@@ -301,6 +307,28 @@ export const useAppStore = create<AppState & AppActions & AppComputed>((set, get
         set({ selectedItems: new Set() });
     },
 
+    // Agent Selection
+    toggleSelectAgent: (id) => {
+        set((state) => {
+            const newSelected = new Set(state.selectedAgents);
+            if (newSelected.has(id)) {
+                newSelected.delete(id);
+            } else {
+                newSelected.add(id);
+            }
+            return { selectedAgents: newSelected };
+        });
+    },
+
+    selectAllAgents: () => {
+        const { agents } = get();
+        set({ selectedAgents: new Set(agents.map((a) => a.id)) });
+    },
+
+    deselectAllAgents: () => {
+        set({ selectedAgents: new Set() });
+    },
+
     // Filters
     setSearch: (query) => {
         set((state) => {
@@ -342,5 +370,10 @@ export const useAppStore = create<AppState & AppActions & AppComputed>((set, get
     getSelectedItemsData: () => {
         const { items, selectedItems } = get();
         return items.filter((item) => selectedItems.has(item.id));
+    },
+
+    getSelectedAgentsData: () => {
+        const { agents, selectedAgents } = get();
+        return agents.filter((agent) => selectedAgents.has(agent.id));
     },
 }));

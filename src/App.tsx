@@ -11,7 +11,7 @@ import { AgentList } from './components/AgentList';
 import { AgentEditor } from './components/AgentEditor';
 import { FloatingActions } from './components/FloatingActions';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, CheckSquare, Square } from 'lucide-react';
 
 function App() {
   const loadData = useAppStore((s) => s.loadData);
@@ -20,6 +20,10 @@ function App() {
   const isCreating = useAppStore((s) => s.isCreating);
   const createType = useAppStore((s) => s.createType);
   const viewMode = useAppStore((s) => s.viewMode);
+  const agents = useAppStore((s) => s.agents);
+  const selectedAgents = useAppStore((s) => s.selectedAgents);
+  const selectAllAgents = useAppStore((s) => s.selectAllAgents);
+  const deselectAllAgents = useAppStore((s) => s.deselectAllAgents);
   const setEditing = useAppStore((s) => s.setEditing);
   const setEditingAgent = useAppStore((s) => s.setEditingAgent);
   const setCreating = useAppStore((s) => s.setCreating);
@@ -49,7 +53,7 @@ function App() {
     <div className="h-screen flex flex-col bg-bg-primary">
       <Header />
 
-      {/* Filters bar - only show for items view */}
+      {/* Filters bar - only show for prompts view */}
       {viewMode === 'items' && (
         <div className="px-6 py-3 border-b border-border bg-bg-secondary space-y-3">
           <div className="flex items-center gap-4 w-full">
@@ -66,9 +70,36 @@ function App() {
       {viewMode === 'agents' && (
         <div className="px-6 py-3 border-b border-border bg-bg-secondary">
           <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold">Agent Configurations</h2>
-              <p className="text-sm text-muted-foreground">Manage OpenCode agent settings</p>
+            <div className="flex items-center gap-4">
+              <div>
+                <h2 className="text-lg font-semibold">Agent Configurations</h2>
+                <p className="text-sm text-muted-foreground">Manage OpenCode agent settings</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={selectedAgents.size === agents.length && agents.length > 0 ? deselectAllAgents : selectAllAgents}
+                  className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  {selectedAgents.size === agents.length && agents.length > 0 ? (
+                    <>
+                      <CheckSquare size={13} />
+                      Deselect All
+                    </>
+                  ) : (
+                    <>
+                      <Square size={13} />
+                      Select All
+                    </>
+                  )}
+                </Button>
+                {selectedAgents.size > 0 && (
+                  <span className="text-xs text-muted-foreground">
+                    {selectedAgents.size} selected
+                  </span>
+                )}
+              </div>
             </div>
             <Button onClick={handleCreateAgent}>
               <Plus size={16} />

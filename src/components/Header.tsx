@@ -54,7 +54,7 @@ export function Header() {
                     <TabsList>
                         <TabsTrigger value="items" className="gap-1.5">
                             <Package size={14} />
-                            Items
+                            Prompts
                         </TabsTrigger>
                         <TabsTrigger value="agents" className="gap-1.5">
                             <Bot size={14} />

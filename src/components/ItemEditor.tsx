@@ -178,7 +178,7 @@ export function ItemEditor({ item, createType, onClose }: ItemEditorProps) {
                 <DialogHeader className="p-4 pb-3 border-b shrink-0">
                     <div className="flex items-center gap-3">
                         <DialogTitle className="text-base">
-                            {isCreating ? 'Create New' : 'Edit'} Item
+                            {isCreating ? 'Create New' : 'Edit'} Prompt
                         </DialogTitle>
                         {!isCreating && (
                             <Badge

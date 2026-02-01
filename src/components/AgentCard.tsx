@@ -5,6 +5,7 @@ import { useAppStore } from '../store/appStore';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '../lib/utils';
 
 interface AgentCardProps {
@@ -13,16 +14,19 @@ interface AgentCardProps {
 
 export function AgentCard({ agent }: AgentCardProps) {
     const [copied, setCopied] = useState(false);
+    const selectedAgents = useAppStore((s) => s.selectedAgents);
+    const toggleSelectAgent = useAppStore((s) => s.toggleSelectAgent);
     const setEditingAgent = useAppStore((s) => s.setEditingAgent);
     const deleteAgent = useAppStore((s) => s.deleteAgent);
 
+    const isSelected = selectedAgents.has(agent.id);
     const toolsCount = agent.tools_config ? Object.keys(agent.tools_config).length : 0;
     const permissionsCount = agent.permissions_config ? Object.keys(agent.permissions_config).length : 0;
 
     const handleCopy = async (e: React.MouseEvent) => {
         e.stopPropagation();
         
-        // Build the OpenCode JSON config for this agent
+        // Build the OpenCode JSON config for this agent with "agent" wrapper
         const config: Record<string, unknown> = {
             mode: agent.mode,
         };
@@ -40,7 +44,7 @@ export function AgentCard({ agent }: AgentCardProps) {
             config.permissions = agent.permissions_config;
         }
 
-        const jsonStr = JSON.stringify({ [agent.name]: config }, null, 2);
+        const jsonStr = JSON.stringify({ agent: { [agent.name]: config } }, null, 2);
         await navigator.clipboard.writeText(jsonStr);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
@@ -57,11 +61,30 @@ export function AgentCard({ agent }: AgentCardProps) {
 
     return (
         <Card
-            className="group relative transition-all duration-150 cursor-pointer overflow-hidden p-0 gap-0 hover:border-primary/50"
+            className={cn(
+                'group relative transition-all duration-150 cursor-pointer overflow-hidden p-0 gap-0 hover:border-primary/50',
+                isSelected && 'ring-2 ring-primary ring-offset-2 ring-offset-background border-primary'
+            )}
             onClick={() => setEditingAgent(agent)}
         >
+            {/* Selection checkbox - bottom right */}
+            <div
+                className="absolute bottom-4 right-4 z-10"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <Checkbox
+                    checked={isSelected}
+                    onCheckedChange={() => toggleSelectAgent(agent.id)}
+                    className={cn(
+                        "data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground w-5 h-5",
+                        "transition-all duration-200",
+                        !isSelected && "opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100"
+                    )}
+                />
+            </div>
+
             {/* Header */}
-            <CardHeader className="p-4 pb-2 space-y-1">
+            <CardHeader className="p-4 pb-2 space-y-1 relative z-0">
                 <div className="flex items-start justify-between min-w-0">
                     <div className="flex-1 min-w-0 space-y-1">
                         <div className="flex items-center gap-2">
