@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Item, Tag, ItemType, ItemFormData, Agent, AgentFormData, ExportAgent } from '../types';
+import type { Item, Tag, ItemType, ItemFormData, Agent, AgentFormData } from '../types';
 import * as db from '../services/database';
 
 interface AppState {
