@@ -13,12 +13,10 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { TAG_COLORS } from '../lib/utils';
-import { AgentExport } from './AgentExport';
 
 export function FloatingActions() {
     const [copied, setCopied] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-    const [showAgentExport, setShowAgentExport] = useState(false);
     const messageTimeoutRef = useRef<number | null>(null);
     const copiedTimeoutRef = useRef<number | null>(null);
 
@@ -31,15 +29,6 @@ export function FloatingActions() {
 
     // Cleanup timeouts on unmount
     useEffect(() => {
-        // Listen for export agents event from keyboard shortcut
-        const handleExportAgentsEvent = () => {
-            if (selectedAgents.size > 0) {
-                setShowAgentExport(true);
-            }
-        };
-        
-        window.addEventListener('exportAgents', handleExportAgentsEvent);
-        
         return () => {
             if (messageTimeoutRef.current !== null) {
                 clearTimeout(messageTimeoutRef.current);
@@ -47,13 +36,12 @@ export function FloatingActions() {
             if (copiedTimeoutRef.current !== null) {
                 clearTimeout(copiedTimeoutRef.current);
             }
-            window.removeEventListener('exportAgents', handleExportAgentsEvent);
         };
-    }, [selectedAgents]);
+    }, []);
 
     const handleCopyCommand = async () => {
         if (viewMode === 'agents') {
-            // Show export dialog for agents
+            // Generate CLI command for agents
             const agentsToExport = getSelectedAgentsData();
             if (agentsToExport.length === 0) {
                 setMessage({ type: 'error', text: 'Select agents first' });
@@ -66,7 +54,33 @@ export function FloatingActions() {
                 }, 3000);
                 return;
             }
-            setShowAgentExport(true);
+
+            const ids = agentsToExport.map((agent) => agent.id).join(',');
+            const command = `promption sync-agents --ids=${ids}`;
+            
+            try {
+                await navigator.clipboard.writeText(command);
+                setCopied(true);
+                setMessage({ type: 'success', text: 'Command copied! Run in your project directory' });
+                
+                if (copiedTimeoutRef.current !== null) {
+                    clearTimeout(copiedTimeoutRef.current);
+                }
+                copiedTimeoutRef.current = window.setTimeout(() => {
+                    setCopied(false);
+                    copiedTimeoutRef.current = null;
+                }, 2000);
+            } catch {
+                setMessage({ type: 'error', text: 'Failed to copy command' });
+            }
+            
+            if (messageTimeoutRef.current !== null) {
+                clearTimeout(messageTimeoutRef.current);
+            }
+            messageTimeoutRef.current = window.setTimeout(() => {
+                setMessage(null);
+                messageTimeoutRef.current = null;
+            }, 4000);
         } else {
             // Original items export logic
             const itemsToExport = getSelectedItemsData();
@@ -120,13 +134,6 @@ export function FloatingActions() {
 
     return (
         <>
-            {/* Agent Export Dialog */}
-            {showAgentExport && (
-                <AgentExport
-                    agents={getSelectedAgentsData()}
-                    onClose={() => setShowAgentExport(false)}
-                />
-            )}
             {/* Message toast */}
             {message && (
                 <div className="fixed bottom-24 right-6 z-50 animate-fadeIn">

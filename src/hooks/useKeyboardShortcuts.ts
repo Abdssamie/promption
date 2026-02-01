@@ -49,11 +49,20 @@ export function useKeyboardShortcuts() {
         }
     }, [getSelectedItemsData]);
 
-    const handleExportAgents = useCallback(() => {
-        // Trigger the floating actions export handler by dispatching a custom event
-        const event = new CustomEvent('exportAgents');
-        window.dispatchEvent(event);
-    }, []);
+    const handleExportAgents = useCallback(async () => {
+        const agentsToExport = getSelectedAgentsData();
+        if (agentsToExport.length === 0) return;
+
+        const ids = agentsToExport.map((agent) => agent.id).join(',');
+        const command = `promption sync-agents --ids=${ids}`;
+        
+        try {
+            await navigator.clipboard.writeText(command);
+            console.log('Agent export command copied to clipboard');
+        } catch (error) {
+            console.error('Failed to copy agent export command:', error);
+        }
+    }, [getSelectedAgentsData]);
 
     const handleCreateItem = useCallback((type: ItemType) => {
         setCreating(true, type);
